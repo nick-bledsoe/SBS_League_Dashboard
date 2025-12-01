@@ -152,6 +152,7 @@ def process_matchups(data, league_name):
 
     schedule = data.get('schedule', [])
     teams = data.get('teams', [])
+    current_week = data.get('scoringPeriodId', 1)
 
     # Create team ID to name mapping
     team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
@@ -169,8 +170,16 @@ def process_matchups(data, league_name):
 
         home_team_id = home.get('teamId')
         away_team_id = away.get('teamId')
-        home_score = round(home.get('totalPoints', 0), 1)
-        away_score = round(away.get('totalPoints', 0), 1)
+
+        # Get scores - use totalPointsLive for current week, totalPoints for completed weeks
+        if matchup_week == current_week:
+            # For current/live week, use totalPointsLive
+            home_score = round(home.get('totalPointsLive', 0), 1)
+            away_score = round(away.get('totalPointsLive', 0), 1)
+        else:
+            # For completed weeks, use totalPoints
+            home_score = round(home.get('totalPoints', 0), 1)
+            away_score = round(away.get('totalPoints', 0), 1)
 
         matchup_info = {
             'League': league_name,
