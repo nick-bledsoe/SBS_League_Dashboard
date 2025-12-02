@@ -1,5 +1,6 @@
+import streamlit as st
+import pandas as pd
 from utils import *
-
 
 def render_teams_tab():
     st.markdown("")
@@ -23,6 +24,14 @@ def render_teams_tab():
         if league_data:
             roster = get_team_roster(league_data, selected_team['team_id'])
 
+            # Get team logo
+            team_logo = ""
+            if 'teams' in league_data:
+                for team in league_data['teams']:
+                    if team.get('id') == selected_team['team_id']:
+                        team_logo = team.get('logo', '')
+                        break
+
             standings_df = fetch_all_leagues()
             matchups_df = fetch_all_matchups()
             playoff_df = calculate_playoff_standings(standings_df, matchups_df)
@@ -34,15 +43,37 @@ def render_teams_tab():
                 if not team_row.empty:
                     team_seed = int(team_row.iloc[0]['Rank'])
 
-            col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-            with col1:
-                st.metric(":grey[Team]", f"{selected_team['team_name']}")
-            with col2:
-                st.metric(":grey[Division]", selected_team['league_name'])
-            with col3:
-                st.metric(":grey[Record]", f"{selected_team['wins']}-{selected_team['losses']}")
-            with col4:
-                st.metric(":grey[Seed]", f"{team_seed}{'st' if team_seed == 1 else 'nd' if team_seed == 2 else 'rd' if team_seed == 3 else 'th'}")
+            # Team header with metrics
+            st.markdown(f"""
+                <style>
+                @media (max-width: 768px) {{
+                    .team-metrics {{
+                        grid-template-columns: 1fr !important;
+                        gap: 16px !important;
+                    }}
+                }}
+                </style>
+                <div class="team-metrics" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="team-info" style="display: flex; align-items: center; gap: 12px;">
+                        <div>
+                            <div style="font-size: 1rem; color: #808495; font-weight: 600;">Team</div>
+                            <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;"><img src="{team_logo}" style="width: 35px; height: 35px; border-radius: 50%;" onerror="this.style.display='none'"> {selected_team['team_name']}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1rem; color: #808495; font-weight: 600;">Division</div>
+                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{selected_team['league_name']}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1rem; color: #808495; font-weight: 600;">Record</div>
+                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{selected_team['wins']}-{selected_team['losses']}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1rem; color: #808495; font-weight: 600;">Seed</div>
+                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{team_seed}{'st' if team_seed == 1 else 'nd' if team_seed == 2 else 'rd' if team_seed == 3 else 'th'}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
             st.markdown("---")
 

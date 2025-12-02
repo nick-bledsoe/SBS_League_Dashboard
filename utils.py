@@ -137,6 +137,7 @@ def process_matchups(data, league_name):
     teams = data.get('teams', [])
     current_week = data.get('scoringPeriodId', 1)
     team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
+    logo_map = {team.get('id'): team.get('logo', '') for team in teams}
 
     matchups = []
     for matchup in schedule:
@@ -160,8 +161,10 @@ def process_matchups(data, league_name):
             'League': league_name,
             'Week': matchup_week,
             'Home Team': team_map.get(home_team_id, 'Unknown'),
+            'Home Logo': logo_map.get(home_team_id, ''),
             'Home Score': home_score,
             'Away Team': team_map.get(away_team_id, 'Unknown'),
+            'Away Logo': logo_map.get(away_team_id, ''),
             'Away Score': away_score
         }
         matchups.append(matchup_info)

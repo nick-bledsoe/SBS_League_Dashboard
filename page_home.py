@@ -36,7 +36,7 @@ def render_home_tab():
                 hide_index=True,
                 column_config={
                     "Rank": st.column_config.NumberColumn("Seed", width="small"),
-                    "Name": st.column_config.TextColumn("Team Name", width="medium"),
+                    "Name": st.column_config.TextColumn("Team", width="medium"),
                     "League": st.column_config.TextColumn("Divison", width="small"),
                     "Wins": st.column_config.NumberColumn("W", width="small", format="%.1f"),
                     "GB": st.column_config.NumberColumn("GB", width="small", format="%.1f",
@@ -190,9 +190,12 @@ def render_home_tab():
                             with st.container(border=True):
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                        <div>
-                                            <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">{matchup['Home Team']}</div>
-                                            <div style="font-size: 12px; color: #666; margin-top: 2px;">{home_record}</div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img src="{matchup['Home Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                            <div>
+                                                <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">{matchup['Home Team']}</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px;">{home_record}</div>
+                                            </div>
                                         </div>
                                         <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if home_winning else '#666'};">{matchup['Home Score']:.1f}</div>
                                     </div>
@@ -200,9 +203,12 @@ def render_home_tab():
 
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">{matchup['Away Team']}</div>
-                                            <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">{away_record}</div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img src="{matchup['Away Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                            <div>
+                                                <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">{matchup['Away Team']}</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">{away_record}</div>
+                                            </div>
                                         </div>
                                         <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if away_winning else '#666'};">{matchup['Away Score']:.1f}</div>
                                     </div>
