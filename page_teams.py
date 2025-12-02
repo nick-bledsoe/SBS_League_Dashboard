@@ -1,5 +1,3 @@
-import streamlit as st
-import pandas as pd
 from utils import *
 
 def render_teams_tab():
