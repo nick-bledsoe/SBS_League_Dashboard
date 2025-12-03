@@ -21,7 +21,8 @@ def render_home_tab():
         if playoff_df is not None:
             eighth_seed_wins = playoff_df.iloc[7]['Wins'] if len(playoff_df) >= 8 else 0
             playoff_df['GB'] = playoff_df['Wins'] - eighth_seed_wins
-            playoff_df = playoff_df[['Rank', 'Name', 'League', 'Wins', 'GB', 'Points For', 'Points Against']]
+            playoff_df['Team Display'] = playoff_df['Name'].apply(lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
+            playoff_df_display = playoff_df[['Rank', 'Team Display', 'League', 'Wins', 'GB', 'Points For', 'Points Against']].copy()
 
             def color_seed(val):
                 if val <= 8:
@@ -31,12 +32,12 @@ def render_home_tab():
                 return ''
 
             st.dataframe(
-                playoff_df.head(18).style.applymap(color_seed, subset=['Rank']),
+                playoff_df_display.head(18).style.applymap(color_seed, subset=['Rank']),
                 use_container_width=True,
                 hide_index=True,
                 column_config={
                     "Rank": st.column_config.NumberColumn("Seed", width="small"),
-                    "Name": st.column_config.TextColumn("Team", width="medium"),
+                    "Team Display": st.column_config.TextColumn("Team", width="medium"),
                     "League": st.column_config.TextColumn("Divison", width="small"),
                     "Wins": st.column_config.NumberColumn("W", width="small", format="%.1f"),
                     "GB": st.column_config.NumberColumn("GB", width="small", format="%.1f",
@@ -65,12 +66,14 @@ def render_home_tab():
             with col:
                 league_df = standings_df[standings_df['League'] == league_name].copy()
                 league_df['Rank'] = range(1, len(league_df) + 1)
+                league_df['Team Display'] = league_df['Name'].apply(lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
                 st.write(f":orange[**{league_name}**]")
                 st.dataframe(
-                    league_df[['Rank', 'Name', 'Wins', 'Losses', 'Points For', 'Transactions']],
+                    league_df[['Rank', 'Team Display', 'Wins', 'Losses', 'Points For', 'Transactions']],
                     use_container_width=True,
                     hide_index=True,
                     column_config={
+                        "Team Display": st.column_config.TextColumn("Team", width="medium"),
                         "Points For": st.column_config.NumberColumn("Points For", format="%.1f")
                     }
                 )
@@ -187,13 +190,19 @@ def render_home_tab():
                             home_record = f"({int(home_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Home Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {home_team_info['Rank']}{'st' if home_team_info['Rank'] == 1 else 'nd' if home_team_info['Rank'] == 2 else 'rd' if home_team_info['Rank'] == 3 else 'th'})" if home_team_info is not None else ""
                             away_record = f"({int(away_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Away Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {away_team_info['Rank']}{'st' if away_team_info['Rank'] == 1 else 'nd' if away_team_info['Rank'] == 2 else 'rd' if away_team_info['Rank'] == 3 else 'th'})" if away_team_info is not None else ""
 
+                            # Get owner names
+                            home_owner = TEAM_OWNERS.get(matchup['Home Team'], "")
+                            away_owner = TEAM_OWNERS.get(matchup['Away Team'], "")
+
                             with st.container(border=True):
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <img src="{matchup['Home Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
                                             <div>
-                                                <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">{matchup['Home Team']}</div>
+                                                <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">
+                                                    {matchup['Home Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{home_owner}</span>
+                                                </div>
                                                 <div style="font-size: 12px; color: #666; margin-top: 2px;">{home_record}</div>
                                             </div>
                                         </div>
@@ -206,7 +215,9 @@ def render_home_tab():
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <img src="{matchup['Away Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
                                             <div>
-                                                <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">{matchup['Away Team']}</div>
+                                                <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">
+                                                    {matchup['Away Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{away_owner}</span>
+                                                </div>
                                                 <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">{away_record}</div>
                                             </div>
                                         </div>

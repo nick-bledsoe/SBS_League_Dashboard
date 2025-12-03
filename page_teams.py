@@ -19,6 +19,9 @@ def render_teams_tab():
 
         league_data = fetch_league_data(selected_team['league_id'])
 
+        # Get owner names
+        owner = TEAM_OWNERS.get(selected_team['team_name'], "")
+
         if league_data:
             roster = get_team_roster(league_data, selected_team['team_id'])
 
@@ -51,7 +54,7 @@ def render_teams_tab():
                     }}
                 }}
                 </style>
-                <div class="team-metrics" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="team-metrics" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div class="team-info" style="display: flex; align-items: center; gap: 12px;">
                         <div>
                             <div style="font-size: 1rem; color: #808495; font-weight: 600;">Team</div>
@@ -69,6 +72,10 @@ def render_teams_tab():
                     <div>
                         <div style="font-size: 1rem; color: #808495; font-weight: 600;">Seed</div>
                         <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{team_seed}{'st' if team_seed == 1 else 'nd' if team_seed == 2 else 'rd' if team_seed == 3 else 'th'}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1rem; color: #808495; font-weight: 600;">Owner</div>
+                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{owner}</div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)

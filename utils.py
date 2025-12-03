@@ -23,6 +23,28 @@ NFL_TEAMS = {
     22: "ARI", 14: "LAR", 25: "SF", 26: "SEA"
 }
 
+# Team Name to Owner Name mapping
+TEAM_OWNERS = {
+    "Ray Finkle": "Jason",
+    "SMAUX": "Po",
+    "Booters": "Anthony",
+    "The Slye Dawgs": "Jackson",
+    "Kicking Me Softly": "Conor",
+    "Coffin Corner": "CJ",
+    "Team C": "John",
+    "Blaire Walsh Project": "Nick",
+    "Help Me Step Burrow": "Paul",
+    "Michael's Magnificent Team": "Mikey",
+    "mark's Monstrous Team": "Mark",
+    "Big Legs, bigger hearts": "Noah",
+    "Graham Guano": "Al",
+    "Kyle's Top-Notch Team": "Kyle",
+    "Matt's ": "Matt",
+    "Turf Toe": "Carl",
+    "Tory Taylor #19": "Jace",
+    "Lets Get Reicharded": "Brian"
+}
+
 def fetch_league_data(league_id):
     """Fetch data from ESPN Fantasy Football API for a specific league"""
     try:
