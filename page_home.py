@@ -11,7 +11,7 @@ def render_home_tab():
 
     if standings_df is not None:
         # Playoff Picture
-        st.subheader("🏆 Playoff Standings")
+        st.subheader("🏆 Standings")
         st.caption(
             "Top team from each league automatically qualifies | Max 3 teams per league | +0.5 win bonus for highest single week score.")
 
@@ -21,8 +21,10 @@ def render_home_tab():
         if playoff_df is not None:
             eighth_seed_wins = playoff_df.iloc[7]['Wins'] if len(playoff_df) >= 8 else 0
             playoff_df['GB'] = playoff_df['Wins'] - eighth_seed_wins
-            playoff_df['Team Display'] = playoff_df['Name'].apply(lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
-            playoff_df_display = playoff_df[['Rank', 'Team Display', 'League', 'Wins', 'GB', 'Points For', 'Points Against']].copy()
+            playoff_df['Team Display'] = playoff_df['Name'].apply(
+                lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
+            playoff_df_display = playoff_df[
+                ['Rank', 'Team Display', 'League', 'Wins', 'GB', 'Points For', 'Points Against']].copy()
 
             def color_seed(val):
                 if val <= 8:
@@ -66,7 +68,8 @@ def render_home_tab():
             with col:
                 league_df = standings_df[standings_df['League'] == league_name].copy()
                 league_df['Rank'] = range(1, len(league_df) + 1)
-                league_df['Team Display'] = league_df['Name'].apply(lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
+                league_df['Team Display'] = league_df['Name'].apply(
+                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
                 st.write(f":orange[**{league_name}**]")
                 st.dataframe(
                     league_df[['Rank', 'Team Display', 'Wins', 'Losses', 'Points For', 'Transactions']],
@@ -118,24 +121,34 @@ def render_home_tab():
                 high_scores_df = pd.DataFrame(weekly_high_scores)
                 high_scores_df = high_scores_df.sort_values('Week', ascending=False)
 
+                # Add owner names to team display and opponent display
+                high_scores_df['Team Display'] = high_scores_df['Team Name'].apply(
+                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
+                )
+                high_scores_df['Opponent Display'] = high_scores_df['Opponent'].apply(
+                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
+                )
+
                 st.dataframe(
-                    high_scores_df,
+                    high_scores_df[['Week', 'Team Display', 'League', 'Score', 'Opponent Display']],
                     use_container_width=True,
                     hide_index=True,
                     column_config={
                         "Week": st.column_config.NumberColumn("Week", width="small"),
-                        "Team Name": st.column_config.TextColumn("Team", width="medium"),
+                        "Team Display": st.column_config.TextColumn("Team", width="medium"),
                         "League": st.column_config.TextColumn("Division", width="small"),
                         "Score": st.column_config.NumberColumn("Score", format="%.1f", width="small"),
-                        "Opponent": st.column_config.TextColumn("Opponent", width="medium")
+                        "Opponent Display": st.column_config.TextColumn("Opponent", width="medium")
                     }
                 )
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     highest_overall = high_scores_df.loc[high_scores_df['Score'].idxmax()]
+                    team_with_owner = f"{highest_overall['Team Name']} ({TEAM_OWNERS.get(highest_overall['Team Name'], '')})" if TEAM_OWNERS.get(
+                        highest_overall['Team Name']) else highest_overall['Team Name']
                     st.metric("Highest Score", f"{highest_overall['Score']:.1f}",
-                              f"{highest_overall['Team Name']} (Week {highest_overall['Week']})")
+                              f"{team_with_owner} - Week {highest_overall['Week']}")
                 with col2:
                     avg_high_score = high_scores_df['Score'].mean()
                     st.metric("Average Weekly High", f"{avg_high_score:.1f}")
