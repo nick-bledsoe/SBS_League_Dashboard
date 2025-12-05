@@ -24,7 +24,7 @@ def render_home_tab():
             playoff_df['Team Display'] = playoff_df['Name'].apply(
                 lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
             playoff_df_display = playoff_df[
-                ['Rank', 'Team Display', 'League', 'Wins', 'GB', 'Points For', 'Points Against']].copy()
+                ['Rank', 'Team Display', 'League', 'Wins', 'GB', 'Points For', 'Streak']].copy()
 
             def color_seed(val):
                 if val <= 8:
@@ -40,12 +40,12 @@ def render_home_tab():
                 column_config={
                     "Rank": st.column_config.NumberColumn("Seed", width="small"),
                     "Team Display": st.column_config.TextColumn("Team", width="medium"),
-                    "League": st.column_config.TextColumn("Divison", width="small"),
+                    "League": st.column_config.TextColumn("Division", width="small"),
                     "Wins": st.column_config.NumberColumn("W", width="small", format="%.1f"),
                     "GB": st.column_config.NumberColumn("GB", width="small", format="%.1f",
                                                         help="Games back from playoff cutoff (8th seed)"),
                     "Points For": st.column_config.NumberColumn("PF", format="%.1f"),
-                    "Points Against": st.column_config.NumberColumn("PA", format="%.1f")
+                    "Streak": st.column_config.TextColumn("Streak", width="small")
                 }
             )
 
@@ -70,14 +70,21 @@ def render_home_tab():
                 league_df['Rank'] = range(1, len(league_df) + 1)
                 league_df['Team Display'] = league_df['Name'].apply(
                     lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x)
-                st.write(f":orange[**{league_name}**]")
+                league_df['Record'] = league_df['Wins'].astype(int).astype(str) + "-" + league_df['Losses'].astype(
+                    int).astype(str)
+
+                st.markdown(f"### :orange[{league_name}]")
                 st.dataframe(
-                    league_df[['Rank', 'Team Display', 'Wins', 'Losses', 'Points For', 'Transactions']],
+                    league_df[['Rank', 'Team Display', 'Record', 'Points For', 'Points Against', 'Transactions']],
                     use_container_width=True,
                     hide_index=True,
                     column_config={
+                        "Rank": st.column_config.NumberColumn("Rank", width="small"),
                         "Team Display": st.column_config.TextColumn("Team", width="medium"),
-                        "Points For": st.column_config.NumberColumn("Points For", format="%.1f")
+                        "Record": st.column_config.TextColumn("Record", width="small"),
+                        "Points For": st.column_config.NumberColumn("PF", format="%.1f"),
+                        "Points Against": st.column_config.NumberColumn("PA", format="%.1f"),
+                        "Transactions": st.column_config.NumberColumn("Moves", width="small")
                     }
                 )
 

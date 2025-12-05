@@ -45,6 +45,56 @@ TEAM_OWNERS = {
     "Lets Get Reicharded": "Brian"
 }
 
+# Cache for NFL team logos
+_NFL_LOGOS_CACHE = None
+
+
+def fetch_nfl_logos():
+    """Fetch NFL team logos from ESPN API and cache them"""
+    global _NFL_LOGOS_CACHE
+
+    if _NFL_LOGOS_CACHE is not None:
+        return _NFL_LOGOS_CACHE
+
+    try:
+        url = "https://site.web.api.espn.com/apis/site/v2/teams?region=us&lang=en&leagues=mlb%2Cnba%2Cnfl%2Cnhl%2Cwnba"
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        # The data structure has 'nfl' as a direct key with divisions
+        nfl_data = data.get('nfl', [])
+
+        if not nfl_data:
+            return {}
+
+        # Build mapping of team abbreviation to logo URL
+        logo_map = {}
+        # nfl_data is a list of divisions
+        for division in nfl_data:
+            teams = division.get('teams', [])
+            for team in teams:
+                abbr = team.get('abbreviation')
+                # Get the first logo from the logos array
+                logos = team.get('logos', [])
+                logo_url = logos[0].get('href', '') if logos else ''
+                if abbr and logo_url:
+                    logo_map[abbr] = logo_url
+
+        _NFL_LOGOS_CACHE = logo_map
+        return logo_map
+
+    except requests.exceptions.RequestException as e:
+        st.warning(f"Could not fetch NFL logos: {e}")
+        return {}
+
+
+def get_nfl_logo(team_abbr):
+    """Get the logo URL for an NFL team abbreviation"""
+    logos = fetch_nfl_logos()
+    return logos.get(team_abbr, '')
+
+
 def fetch_league_data(league_id):
     """Fetch data from ESPN Fantasy Football API for a specific league"""
     try:
@@ -56,6 +106,7 @@ def fetch_league_data(league_id):
         st.error(f"Error fetching data for league {league_id}: {e}")
         return None
 
+
 def get_current_week():
     """Get current scoring period from any league"""
     for league_id in LEAGUES.values():
@@ -63,6 +114,7 @@ def get_current_week():
         if league_data and 'scoringPeriodId' in league_data:
             return league_data['scoringPeriodId']
     return 1
+
 
 def get_team_roster(data, team_id):
     """Extract roster for a specific team with NFL team and positional ranking"""
@@ -87,6 +139,7 @@ def get_team_roster(data, team_id):
                 lineup_slot_id = entry.get('lineupSlotId', 0)
                 pro_team_id = player_info.get('proTeamId')
                 nfl_team = NFL_TEAMS.get(pro_team_id, 'N/A') if pro_team_id else 'N/A'
+                nfl_logo = get_nfl_logo(nfl_team) if nfl_team != 'N/A' else ''
                 ratings = player_pool_entry.get("ratings", {})
                 positional_rank = ratings.get("0", {}).get("positionalRanking")
 
@@ -107,6 +160,7 @@ def get_team_roster(data, team_id):
                     'Player': player_name,
                     'Position': position,
                     'NFL Team': nfl_team,
+                    'NFL Logo': nfl_logo,
                     'Rank': positional_rank if positional_rank else '-',
                     'Sort': sort_order
                 })
@@ -115,6 +169,7 @@ def get_team_roster(data, team_id):
             return players
 
     return []
+
 
 def get_all_teams():
     """Get all teams from all leagues"""
@@ -133,12 +188,24 @@ def get_all_teams():
                 })
     return sorted(all_teams, key=lambda x: (x['league_name'], -x['wins']))
 
+
 def process_league_standings(data, league_name):
     """Process league data into standings records"""
     if not data or 'teams' not in data:
         return []
     teams_data = []
     for team in data['teams']:
+        # Get streak information
+        record = team.get('record', {}).get('overall', {})
+        streak_type = record.get('streakType', '')
+        streak_length = record.get('streakLength', 0)
+
+        # Format streak
+        if streak_type and streak_length > 0:
+            streak = f"{streak_type[0].upper()}{streak_length}"
+        else:
+            streak = "-"
+
         team_info = {
             'League': league_name,
             'Name': team.get('name', 'Unknown'),
@@ -146,10 +213,12 @@ def process_league_standings(data, league_name):
             'Losses': team.get('record', {}).get('overall', {}).get('losses', 0),
             'Points For': team.get('record', {}).get('overall', {}).get('pointsFor', 0),
             'Points Against': team.get('record', {}).get('overall', {}).get('pointsAgainst', 0),
-            'Transactions': team.get('transactionCounter', {}).get('acquisitions', 0)
+            'Transactions': team.get('transactionCounter', {}).get('acquisitions', 0),
+            'Streak': streak
         }
         teams_data.append(team_info)
     return teams_data
+
 
 def process_matchups(data, league_name):
     """Process matchup data for current week"""
@@ -192,6 +261,7 @@ def process_matchups(data, league_name):
         matchups.append(matchup_info)
     return matchups
 
+
 def fetch_all_matchups():
     """Fetch and aggregate matchups from all leagues"""
     all_matchups = []
@@ -203,6 +273,7 @@ def fetch_all_matchups():
     if not all_matchups:
         return None
     return pd.DataFrame(all_matchups)
+
 
 def fetch_all_leagues():
     """Fetch and aggregate data from all leagues"""
@@ -221,6 +292,7 @@ def fetch_all_leagues():
     df['Points For'] = df['Points For'].round(1)
     df['Points Against'] = df['Points Against'].round(1)
     return df
+
 
 def calculate_playoff_standings(df, matchups_df=None):
     """Calculate playoff standings with league winner guarantee and max 3 per league rule"""
@@ -284,5 +356,5 @@ def calculate_playoff_standings(df, matchups_df=None):
 
     result_df = pd.DataFrame(result_teams)
     result_df['Rank'] = range(1, len(result_df) + 1)
-    result_df = result_df[['Rank', 'Name', 'League', 'Wins', 'Points For', 'Points Against']]
+    result_df = result_df[['Rank', 'Name', 'League', 'Wins', 'Points For', 'Points Against', 'Streak']]
     return result_df
