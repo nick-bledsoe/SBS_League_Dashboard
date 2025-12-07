@@ -1,5 +1,34 @@
 from utils import *
 import streamlit as st
+import json
+import os
+
+MATCHUPS_FILE = "playoff_matchups.json"
+
+
+def load_matchups_from_file():
+    """Load matchups from JSON file"""
+    if os.path.exists(MATCHUPS_FILE):
+        try:
+            with open(MATCHUPS_FILE, 'r') as f:
+                data = json.load(f)
+                # Convert string keys back to integers
+                return {int(k): v for k, v in data.items()}
+        except Exception as e:
+            st.error(f"Failed to load matchups: {e}")
+            return {}
+    return {}
+
+
+def save_matchups_to_file(matchups):
+    """Save matchups to JSON file"""
+    try:
+        with open(MATCHUPS_FILE, 'w') as f:
+            json.dump(matchups, f, indent=2)
+        return True
+    except Exception as e:
+        st.error(f"Failed to save matchups: {e}")
+        return False
 
 
 def get_team_score_for_week(league_id, team_name, week):
@@ -39,10 +68,9 @@ def get_team_score_for_week(league_id, team_name, week):
 
 
 def render_playoffs_tab():
-    # Initialize session state for matchups if it doesn't exist
-    # Structure: {week_number: [list of matchups]}
+    # Initialize session state from file if it doesn't exist
     if 'playoff_matchups' not in st.session_state:
-        st.session_state.playoff_matchups = {}
+        st.session_state.playoff_matchups = load_matchups_from_file()
 
     # Get all teams
     all_teams = get_all_teams()
@@ -132,9 +160,11 @@ def render_playoffs_tab():
                         'team1': team1_data,
                         'team2': team2_data
                     })
-                    st.success(
-                        f"Created matchup for week {matchup_week}: {team1_data['team_name']} vs {team2_data['team_name']}")
-                    st.rerun()
+                    # Save to file after creating matchup
+                    if save_matchups_to_file(st.session_state.playoff_matchups):
+                        st.success(
+                            f"Created matchup for week {matchup_week}: {team1_data['team_name']} vs {team2_data['team_name']}")
+                        st.rerun()
 
     # Display existing matchups
     st.markdown("---")
@@ -248,6 +278,8 @@ def render_playoffs_tab():
                 with col_delete:
                     if st.button("🗑", key=f"delete_{selected_week}_{idx}", help="Delete this matchup"):
                         st.session_state.playoff_matchups[selected_week].pop(idx)
+                        # Save to file after deleting matchup
+                        save_matchups_to_file(st.session_state.playoff_matchups)
                         st.rerun()
 
                 # Team 1
