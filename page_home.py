@@ -233,8 +233,8 @@ def render_home_tab():
             has_playoff_matchups = bool(
                 playoff_matchups and current_week in playoff_matchups and playoff_matchups[current_week])
 
-            # Default to playoff matchups if week 15+ and they exist, otherwise regular season
-            default_matchup_type = "Playoffs" if (current_week >= 15 and has_playoff_matchups) else "Regular Season"
+            # Default to playoff matchups if week 16+ and they exist, otherwise regular season
+            default_matchup_type = "Playoffs" if (current_week >= 16 and has_playoff_matchups) else "Regular Season"
 
             # Matchup type selector
             col1, col2 = st.columns([2, 6])
