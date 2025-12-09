@@ -295,12 +295,13 @@ def fetch_all_leagues():
 
 
 def calculate_playoff_standings(df, matchups_df=None):
-    """Calculate playoff standings with league winner guarantee and max 3 per league rule"""
+    """Calculate playoff standings with league winner guarantee and min 2 per league rule"""
     if df is None or df.empty:
         return None
 
     all_teams = df.copy()
 
+    # Apply weekly high score bonus
     if matchups_df is not None and not matchups_df.empty:
         all_performances = []
         for _, matchup in matchups_df.iterrows():
@@ -324,14 +325,17 @@ def calculate_playoff_standings(df, matchups_df=None):
             mask = (all_teams['Name'] == bonus_team) & (all_teams['League'] == bonus_league)
             all_teams.loc[mask, 'Wins'] = all_teams.loc[mask, 'Wins'] + 0.5
 
+    # Sort all teams by wins and points
     all_teams = all_teams.sort_values(by=['Wins', 'Points For'], ascending=[False, False]).reset_index(drop=True)
 
+    # Step 1: Identify league winners (top team from each league)
     league_winners = {}
     for league_name in LEAGUES.keys():
         league_teams = all_teams[all_teams['League'] == league_name]
         if not league_teams.empty:
             league_winners[league_name] = league_teams.iloc[0]['Name']
 
+    # Step 2: Add all league winners first
     playoff_teams = []
     league_counts = {league: 0 for league in LEAGUES.keys()}
 
@@ -340,15 +344,33 @@ def calculate_playoff_standings(df, matchups_df=None):
             playoff_teams.append(team.to_dict())
             league_counts[team['League']] += 1
 
+    # Step 3: Ensure minimum 2 teams per league
+    for league_name in LEAGUES.keys():
+        if league_counts[league_name] < 2:
+            # Find the next best team from this league that's not already in playoffs
+            league_teams = all_teams[all_teams['League'] == league_name]
+            for _, team in league_teams.iterrows():
+                # Check if team is already in playoffs
+                if any(p['Name'] == team['Name'] and p['League'] == team['League'] for p in playoff_teams):
+                    continue
+                # Add this team
+                playoff_teams.append(team.to_dict())
+                league_counts[league_name] += 1
+                if league_counts[league_name] >= 2:
+                    break
+
+    # Step 4: Fill remaining spots with best available teams (up to 8 total)
     for _, team in all_teams.iterrows():
         if len(playoff_teams) >= 8:
             break
+        # Check if team is already in playoffs
         if any(p['Name'] == team['Name'] and p['League'] == team['League'] for p in playoff_teams):
             continue
-        if league_counts[team['League']] < 3:
-            playoff_teams.append(team.to_dict())
-            league_counts[team['League']] += 1
+        # Add team
+        playoff_teams.append(team.to_dict())
+        league_counts[team['League']] += 1
 
+    # Create result dataframe with all teams
     result_teams = []
     for _, team in all_teams.iterrows():
         team_dict = team.to_dict()

@@ -66,7 +66,7 @@ def render_home_tab():
         # Playoff Picture
         st.subheader("🏆 Standings")
         st.caption(
-            "Top team from each league automatically qualifies | Max 3 teams per league | +0.5 win bonus for highest single week score.")
+            "Top team from each div automatically qualifies | Min 2 teams per div | +0.5 win bonus for highest single week score.")
 
         matchups_df = fetch_all_matchups()
         playoff_df = calculate_playoff_standings(standings_df, matchups_df)
