@@ -1,4 +1,57 @@
 from utils import *
+import json
+import os
+
+MATCHUPS_FILE = "playoff_matchups.json"
+
+
+def load_playoff_matchups():
+    """Load playoff matchups from JSON file"""
+    if os.path.exists(MATCHUPS_FILE):
+        try:
+            with open(MATCHUPS_FILE, 'r') as f:
+                data = json.load(f)
+                # Convert string keys back to integers
+                return {int(k): v for k, v in data.items()}
+        except Exception as e:
+            return {}
+    return {}
+
+
+def get_team_score_for_week(league_id, team_name, week):
+    """Get a specific team's score for a specific week"""
+    league_data = fetch_league_data(league_id)
+    if not league_data or 'schedule' not in league_data:
+        return None
+
+    schedule = league_data.get('schedule', [])
+    teams = league_data.get('teams', [])
+    team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
+
+    for matchup in schedule:
+        if matchup.get('matchupPeriodId') == week:
+            home = matchup.get('home', {})
+            away = matchup.get('away', {})
+
+            home_team_id = home.get('teamId')
+            away_team_id = away.get('teamId')
+            home_team_name = team_map.get(home_team_id)
+            away_team_name = team_map.get(away_team_id)
+
+            current_week = league_data.get('scoringPeriodId', 1)
+
+            if home_team_name == team_name:
+                if week == current_week:
+                    return round(home.get('totalPointsLive', 0), 1)
+                else:
+                    return round(home.get('totalPoints', 0), 1)
+            elif away_team_name == team_name:
+                if week == current_week:
+                    return round(away.get('totalPointsLive', 0), 1)
+                else:
+                    return round(away.get('totalPoints', 0), 1)
+
+    return None
 
 
 def render_home_tab():
@@ -172,83 +225,237 @@ def render_home_tab():
 
         if matchups_df is not None and not matchups_df.empty:
             current_week = get_current_week()
-            available_weeks = sorted(matchups_df['Week'].unique())
-            week_options = [f"{week} (current week)" if week == current_week else str(week) for week in available_weeks]
 
-            selected_week_display = st.selectbox(
-                ":grey[Select Week]",
-                options=week_options,
-                index=available_weeks.index(current_week) if current_week in available_weeks else 0,
-                key="week_selector"
-            )
+            # Load playoff matchups
+            playoff_matchups = load_playoff_matchups()
 
-            selected_week = int(selected_week_display.split()[0])
-            week_matchups = matchups_df[matchups_df['Week'] == selected_week]
+            # Determine if we have playoff matchups for current week
+            has_playoff_matchups = bool(
+                playoff_matchups and current_week in playoff_matchups and playoff_matchups[current_week])
 
-            cols = st.columns(3)
+            # Default to playoff matchups if week 15+ and they exist, otherwise regular season
+            default_matchup_type = "Playoffs" if (current_week >= 15 and has_playoff_matchups) else "Regular Season"
 
-            for idx, league_name in enumerate(LEAGUES.keys()):
-                with cols[idx]:
-                    league_matchups = week_matchups[week_matchups['League'] == league_name]
-                    st.markdown(f"### :orange[{league_name}]")
+            # Matchup type selector
+            col1, col2 = st.columns([2, 6])
+            with col1:
+                matchup_type = st.selectbox(
+                    ":grey[Matchup Type]",
+                    options=["Regular Season", "Playoffs"],
+                    index=0 if default_matchup_type == "Regular Season" else 1,
+                    key="matchup_type_selector"
+                )
 
-                    if not league_matchups.empty:
-                        league_teams = playoff_df[
-                            playoff_df['League'] == league_name] if playoff_df is not None else None
+            with col2:
+                if matchup_type == "Regular Season":
+                    available_weeks = sorted(matchups_df['Week'].unique())
+                    week_options = [f"{week} (current week)" if week == current_week else str(week) for week in
+                                    available_weeks]
 
-                        for _, matchup in league_matchups.iterrows():
-                            home_winning = matchup['Home Score'] > matchup['Away Score']
-                            away_winning = matchup['Away Score'] > matchup['Home Score']
+                    selected_week_display = st.selectbox(
+                        ":grey[Select Week]",
+                        options=week_options,
+                        index=available_weeks.index(current_week) if current_week in available_weeks else 0,
+                        key="week_selector"
+                    )
+                    selected_week = int(selected_week_display.split()[0])
+                else:
+                    # For playoff matchups, show weeks that have playoff matchups
+                    playoff_weeks = sorted([week for week, matchups in playoff_matchups.items() if matchups])
+                    if playoff_weeks:
+                        playoff_week_options = [f"{week} (current week)" if week == current_week else str(week) for week
+                                                in playoff_weeks]
+                        selected_week_display = st.selectbox(
+                            ":grey[Select Week]",
+                            options=playoff_week_options,
+                            index=playoff_weeks.index(current_week) if current_week in playoff_weeks else len(
+                                playoff_weeks) - 1,
+                            key="home_playoff_week_selector"
+                        )
+                        selected_week = int(selected_week_display.split()[0])
+                    else:
+                        st.info("No playoff matchups created yet. Go to the Playoffs tab to create matchups.")
+                        return
 
-                            home_team_info = league_teams[league_teams['Name'] == matchup['Home Team']].iloc[
-                                0] if league_teams is not None and not league_teams[
-                                league_teams['Name'] == matchup['Home Team']].empty else None
-                            away_team_info = league_teams[league_teams['Name'] == matchup['Away Team']].iloc[
-                                0] if league_teams is not None and not league_teams[
-                                league_teams['Name'] == matchup['Away Team']].empty else None
+            st.markdown("")
 
-                            home_record = f"({int(home_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Home Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {home_team_info['Rank']}{'st' if home_team_info['Rank'] == 1 else 'nd' if home_team_info['Rank'] == 2 else 'rd' if home_team_info['Rank'] == 3 else 'th'})" if home_team_info is not None else ""
-                            away_record = f"({int(away_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Away Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {away_team_info['Rank']}{'st' if away_team_info['Rank'] == 1 else 'nd' if away_team_info['Rank'] == 2 else 'rd' if away_team_info['Rank'] == 3 else 'th'})" if away_team_info is not None else ""
+            if matchup_type == "Regular Season":
+                # Display regular season matchups (existing code)
+                week_matchups = matchups_df[matchups_df['Week'] == selected_week]
+
+                cols = st.columns(3)
+
+                for idx, league_name in enumerate(LEAGUES.keys()):
+                    with cols[idx]:
+                        league_matchups = week_matchups[week_matchups['League'] == league_name]
+                        st.markdown(f"### :orange[{league_name}]")
+
+                        if not league_matchups.empty:
+                            league_teams = playoff_df[
+                                playoff_df['League'] == league_name] if playoff_df is not None else None
+
+                            for _, matchup in league_matchups.iterrows():
+                                home_winning = matchup['Home Score'] > matchup['Away Score']
+                                away_winning = matchup['Away Score'] > matchup['Home Score']
+
+                                home_team_info = league_teams[league_teams['Name'] == matchup['Home Team']].iloc[
+                                    0] if league_teams is not None and not league_teams[
+                                    league_teams['Name'] == matchup['Home Team']].empty else None
+                                away_team_info = league_teams[league_teams['Name'] == matchup['Away Team']].iloc[
+                                    0] if league_teams is not None and not league_teams[
+                                    league_teams['Name'] == matchup['Away Team']].empty else None
+
+                                home_record = f"({int(home_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Home Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {home_team_info['Rank']}{'st' if home_team_info['Rank'] == 1 else 'nd' if home_team_info['Rank'] == 2 else 'rd' if home_team_info['Rank'] == 3 else 'th'})" if home_team_info is not None else ""
+                                away_record = f"({int(away_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Away Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {away_team_info['Rank']}{'st' if away_team_info['Rank'] == 1 else 'nd' if away_team_info['Rank'] == 2 else 'rd' if away_team_info['Rank'] == 3 else 'th'})" if away_team_info is not None else ""
+
+                                # Get owner names
+                                home_owner = TEAM_OWNERS.get(matchup['Home Team'], "")
+                                away_owner = TEAM_OWNERS.get(matchup['Away Team'], "")
+
+                                with st.container(border=True):
+                                    st.markdown(f"""
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <img src="{matchup['Home Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                                <div>
+                                                    <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">
+                                                        {matchup['Home Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{home_owner}</span>
+                                                    </div>
+                                                    <div style="font-size: 12px; color: #666; margin-top: 2px;">{home_record}</div>
+                                                </div>
+                                            </div>
+                                            <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if home_winning else '#666'};">{matchup['Home Score']:.1f}</div>
+                                        </div>
+                                    """, unsafe_allow_html=True)
+
+                                    st.markdown(f"""
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <img src="{matchup['Away Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                                <div>
+                                                    <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">
+                                                        {matchup['Away Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{away_owner}</span>
+                                                    </div>
+                                                    <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">{away_record}</div>
+                                                </div>
+                                            </div>
+                                            <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if away_winning else '#666'};">{matchup['Away Score']:.1f}</div>
+                                        </div>
+                                    """, unsafe_allow_html=True)
+
+                        else:
+                            st.info(f"No matchups for week {selected_week}")
+
+                        st.write("")
+
+            else:
+                # Display playoff matchups
+                week_playoff_matchups = playoff_matchups.get(selected_week, [])
+
+                if not week_playoff_matchups:
+                    st.info(f"No playoff matchups for week {selected_week}")
+                else:
+                    # Add playoff header
+                    st.markdown("### :orange[Coach Smith Cup Playoffs]")
+                    st.markdown("")
+
+                    # Display playoff matchups across columns
+                    num_matchups = len(week_playoff_matchups)
+                    cols = st.columns(min(3, num_matchups))
+
+                    for idx, matchup in enumerate(week_playoff_matchups):
+                        with cols[idx % 3]:
+                            team1 = matchup['team1']
+                            team2 = matchup['team2']
+
+                            # Get team logos
+                            team1_logo = ""
+                            team2_logo = ""
+
+                            league1_data = fetch_league_data(team1['league_id'])
+                            if league1_data and 'teams' in league1_data:
+                                for team in league1_data['teams']:
+                                    if team.get('id') == team1['team_id']:
+                                        team1_logo = team.get('logo', '')
+                                        break
+
+                            league2_data = fetch_league_data(team2['league_id'])
+                            if league2_data and 'teams' in league2_data:
+                                for team in league2_data['teams']:
+                                    if team.get('id') == team2['team_id']:
+                                        team2_logo = team.get('logo', '')
+                                        break
+
+                            # Get seeds from playoff standings
+                            team1_seed = "N/A"
+                            team2_seed = "N/A"
+
+                            if playoff_df is not None:
+                                team1_row = playoff_df[(playoff_df['Name'] == team1['team_name']) &
+                                                       (playoff_df['League'] == team1['league_name'])]
+                                if not team1_row.empty:
+                                    team1_seed = int(team1_row.iloc[0]['Rank'])
+
+                                team2_row = playoff_df[(playoff_df['Name'] == team2['team_name']) &
+                                                       (playoff_df['League'] == team2['league_name'])]
+                                if not team2_row.empty:
+                                    team2_seed = int(team2_row.iloc[0]['Rank'])
+
+                            # Get scores for selected week
+                            team1_score = get_team_score_for_week(team1['league_id'], team1['team_name'], selected_week)
+                            team2_score = get_team_score_for_week(team2['league_id'], team2['team_name'], selected_week)
+
+                            # Determine winner
+                            team1_winning = False
+                            team2_winning = False
+                            if team1_score is not None and team2_score is not None:
+                                if team1_score > team2_score:
+                                    team1_winning = True
+                                elif team2_score > team1_score:
+                                    team2_winning = True
 
                             # Get owner names
-                            home_owner = TEAM_OWNERS.get(matchup['Home Team'], "")
-                            away_owner = TEAM_OWNERS.get(matchup['Away Team'], "")
+                            team1_owner = TEAM_OWNERS.get(team1['team_name'], "")
+                            team2_owner = TEAM_OWNERS.get(team2['team_name'], "")
 
                             with st.container(border=True):
+                                # Team 1
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
-                                            <img src="{matchup['Home Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                            <img src="{team1_logo}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
                                             <div>
-                                                <div style="{'font-weight: bold;' if home_winning else ''} font-size: 16px;">
-                                                    {matchup['Home Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{home_owner}</span>
+                                                <div style="{'font-weight: bold;' if team1_winning else ''} font-size: 16px;">
+                                                    {team1['team_name']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{team1_owner}</span>
                                                 </div>
-                                                <div style="font-size: 12px; color: #666; margin-top: 2px;">{home_record}</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px;">({team1['league_name']}, {team1['wins']}-{team1['losses']}, {team1_seed}{'st' if team1_seed == 1 else 'nd' if team1_seed == 2 else 'rd' if team1_seed == 3 else 'th' if isinstance(team1_seed, int) else ''})</div>
                                             </div>
                                         </div>
-                                        <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if home_winning else '#666'};">{matchup['Home Score']:.1f}</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if team1_winning else '#666'};">
+                                            {team1_score if team1_score is not None else '---'}
+                                        </div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
+                                # Team 2
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
-                                            <img src="{matchup['Away Logo']}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
+                                            <img src="{team2_logo}" style="width: 30px; height: 30px; border-radius: 50%;" onerror="this.style.display='none'">
                                             <div>
-                                                <div style="{'font-weight: bold;' if away_winning else ''} font-size: 16px;">
-                                                    {matchup['Away Team']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{away_owner}</span>
+                                                <div style="{'font-weight: bold;' if team2_winning else ''} font-size: 16px;">
+                                                    {team2['team_name']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{team2_owner}</span>
                                                 </div>
-                                                <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">{away_record}</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">({team2['league_name']}, {team2['wins']}-{team2['losses']}, {team2_seed}{'st' if team2_seed == 1 else 'nd' if team2_seed == 2 else 'rd' if team2_seed == 3 else 'th' if isinstance(team2_seed, int) else ''})</div>
                                             </div>
                                         </div>
-                                        <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if away_winning else '#666'};">{matchup['Away Score']:.1f}</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if team2_winning else '#666'};">
+                                            {team2_score if team2_score is not None else '---'}
+                                        </div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                    else:
-                        st.info(f"No matchups for week {selected_week}")
-
-                    st.write("")
+                            st.write("")
         else:
             st.info("No matchups available")
     else:
