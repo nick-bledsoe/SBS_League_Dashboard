@@ -111,5 +111,25 @@
         "losses": 4
       }
     }
+  ],
+  "18": [
+    {
+      "team1": {
+        "league_name": "Clunks",
+        "league_id": "112677575",
+        "team_id": 6,
+        "team_name": "The Slye Dawgs",
+        "wins": 9,
+        "losses": 6
+      },
+      "team2": {
+        "league_name": "Shanks",
+        "league_id": "464845016",
+        "team_id": 6,
+        "team_name": "Kicking Me Softly",
+        "wins": 8,
+        "losses": 7
+      }
+    }
   ]
 }
