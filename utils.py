@@ -49,13 +49,22 @@ TEAM_OWNERS = {
 _NFL_LOGOS_CACHE = None
 
 
+def get_ordinal(n):
+    """Convert number to ordinal (1st, 2nd, 3rd, etc.)"""
+    if not isinstance(n, int):
+        return str(n)
+
+    if 10 <= n % 100 <= 20:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+
+    return f"{n}{suffix}"
+
+
+@st.cache_data(ttl=60)  # Cache for 1 minute
 def fetch_nfl_logos():
     """Fetch NFL team logos from ESPN API and cache them"""
-    global _NFL_LOGOS_CACHE
-
-    if _NFL_LOGOS_CACHE is not None:
-        return _NFL_LOGOS_CACHE
-
     try:
         url = "https://site.web.api.espn.com/apis/site/v2/teams?region=us&lang=en&leagues=mlb%2Cnba%2Cnfl%2Cnhl%2Cwnba"
         response = requests.get(url)
@@ -81,7 +90,6 @@ def fetch_nfl_logos():
                 if abbr and logo_url:
                     logo_map[abbr] = logo_url
 
-        _NFL_LOGOS_CACHE = logo_map
         return logo_map
 
     except requests.exceptions.RequestException as e:
@@ -95,6 +103,7 @@ def get_nfl_logo(team_abbr):
     return logos.get(team_abbr, '')
 
 
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def fetch_league_data(league_id):
     """Fetch data from ESPN Fantasy Football API for a specific league"""
     try:
@@ -114,6 +123,42 @@ def get_current_week():
         if league_data and 'scoringPeriodId' in league_data:
             return league_data['scoringPeriodId']
     return 1
+
+
+def get_team_score_for_week(league_id, team_name, week):
+    """Get a specific team's score for a specific week"""
+    league_data = fetch_league_data(league_id)
+    if not league_data or 'schedule' not in league_data:
+        return None
+
+    schedule = league_data.get('schedule', [])
+    teams = league_data.get('teams', [])
+    team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
+
+    for matchup in schedule:
+        if matchup.get('matchupPeriodId') == week:
+            home = matchup.get('home', {})
+            away = matchup.get('away', {})
+
+            home_team_id = home.get('teamId')
+            away_team_id = away.get('teamId')
+            home_team_name = team_map.get(home_team_id)
+            away_team_name = team_map.get(away_team_id)
+
+            current_week = league_data.get('scoringPeriodId', 1)
+
+            if home_team_name == team_name:
+                if week == current_week:
+                    return round(home.get('totalPointsLive', 0), 1)
+                else:
+                    return round(home.get('totalPoints', 0), 1)
+            elif away_team_name == team_name:
+                if week == current_week:
+                    return round(away.get('totalPointsLive', 0), 1)
+                else:
+                    return round(away.get('totalPoints', 0), 1)
+
+    return None
 
 
 def get_team_roster(data, team_id):

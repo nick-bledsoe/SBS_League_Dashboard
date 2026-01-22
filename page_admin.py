@@ -1,76 +1,60 @@
 from utils import *
 import streamlit as st
-import json
-import os
+from utils_storage import get_storage, get_current_season
+from datetime import datetime
 
-MATCHUPS_FILE = "playoff_matchups.json"
+# Playoff matchup type options (removed Regular Season and Wildcard)
+MATCHUP_TYPES = [
+    "Quarterfinal",
+    "Semifinal",
+    "3rd Place",
+    "Championship"
+]
 
-
-def load_matchups_from_file():
-    """Load matchups from JSON file"""
-    if os.path.exists(MATCHUPS_FILE):
-        try:
-            with open(MATCHUPS_FILE, 'r') as f:
-                data = json.load(f)
-                # Convert string keys back to integers
-                return {int(k): v for k, v in data.items()}
-        except Exception as e:
-            st.error(f"Failed to load matchups: {e}")
-            return {}
-    return {}
-
-
-def save_matchups_to_file(matchups):
-    """Save matchups to JSON file"""
-    try:
-        with open(MATCHUPS_FILE, 'w') as f:
-            json.dump(matchups, f, indent=2)
-        return True
-    except Exception as e:
-        st.error(f"Failed to save matchups: {e}")
-        return False
+# Colors for matchup types
+MATCHUP_TYPE_COLORS = {
+    "Quarterfinal": "#ffd700",
+    "Semifinal": "#ff6b6b",
+    "3rd Place": "#4ecdc4",
+    "Championship": "#9b59b6"
+}
 
 
-def get_team_score_for_week(league_id, team_name, week):
-    """Get a specific team's score for a specific week"""
-    league_data = fetch_league_data(league_id)
-    if not league_data or 'schedule' not in league_data:
-        return None
+def render_admin_tab():
+    st.markdown("## Admin Panel")
+    st.caption("Manage playoff matchups and league settings")
 
-    schedule = league_data.get('schedule', [])
-    teams = league_data.get('teams', [])
-    team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
+    # Season selector at the top
+    st.markdown("---")
+    st.markdown("### Season Selection")
+    col1, col2 = st.columns([1, 3])
 
-    for matchup in schedule:
-        if matchup.get('matchupPeriodId') == week:
-            home = matchup.get('home', {})
-            away = matchup.get('away', {})
+    with col1:
+        current_year = get_current_season()
+        available_seasons = list(range(2024, current_year + 2))
 
-            home_team_id = home.get('teamId')
-            away_team_id = away.get('teamId')
-            home_team_name = team_map.get(home_team_id)
-            away_team_name = team_map.get(away_team_id)
+        selected_season = st.selectbox(
+            "Select Season",
+            options=available_seasons,
+            index=available_seasons.index(current_year) if current_year in available_seasons else len(
+                available_seasons) - 1,
+            key="season_selector"
+        )
 
-            current_week = league_data.get('scoringPeriodId', 1)
+    with col2:
+        st.markdown(
+            f"<div style='margin-top: 28px; color: #808495;'>Managing playoff matchups for the {selected_season} season</div>",
+            unsafe_allow_html=True)
 
-            if home_team_name == team_name:
-                if week == current_week:
-                    return round(home.get('totalPointsLive', 0), 1)
-                else:
-                    return round(home.get('totalPoints', 0), 1)
-            elif away_team_name == team_name:
-                if week == current_week:
-                    return round(away.get('totalPointsLive', 0), 1)
-                else:
-                    return round(away.get('totalPoints', 0), 1)
+    st.markdown("---")
 
-    return None
+    # Get storage for selected season
+    storage = get_storage(season=selected_season)
 
-
-def render_playoffs_tab():
-    # Initialize session state from file if it doesn't exist
-    if 'playoff_matchups' not in st.session_state:
-        st.session_state.playoff_matchups = load_matchups_from_file()
+    # Initialize session state key based on season
+    session_key = f'playoff_matchups_{selected_season}'
+    if session_key not in st.session_state:
+        st.session_state[session_key] = storage.load_playoff_matchups()
 
     # Get all teams
     all_teams = get_all_teams()
@@ -96,39 +80,50 @@ def render_playoffs_tab():
 
         team_options_with_seed.append(f"{team['team_name']} ({seed})")
 
-    # Create new matchup section
-    st.subheader("Create New Matchup")
+    # Edit mode state
+    if 'edit_mode' not in st.session_state:
+        st.session_state.edit_mode = None
 
-    col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
+    # Create new matchup section
+    st.subheader("Create Playoff Matchup")
+
+    col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1, 1])
 
     with col1:
         selected_team1 = st.selectbox(
             "Select Team 1",
             options=team_options_with_seed,
-            key="playoff_team1"
+            key="matchup_team1"
         )
 
     with col2:
         selected_team2 = st.selectbox(
             "Select Team 2",
             options=team_options_with_seed,
-            key="playoff_team2"
+            key="matchup_team2"
         )
 
     with col3:
+        matchup_type = st.selectbox(
+            "Round",
+            options=MATCHUP_TYPES,
+            key="matchup_type"
+        )
+
+    with col4:
         current_week = get_current_week()
-        # Create week options with current week indicator
         week_options_create = [f"{week} (current)" if week == current_week else str(week) for week in range(1, 19)]
+        default_index = min(max(current_week - 1, 0), len(week_options_create) - 1)
 
         selected_create_week = st.selectbox(
             "Week",
             options=week_options_create,
-            index=current_week - 1,  # Default to current week
+            index=default_index,
             key="matchup_week_input"
         )
         matchup_week = int(selected_create_week.split()[0])
 
-    with col4:
+    with col5:
         st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
         if st.button("Create", type="primary", use_container_width=True):
             team1_idx = team_options_with_seed.index(selected_team1)
@@ -140,48 +135,47 @@ def render_playoffs_tab():
                 'league_name']:
                 st.error("Cannot create a matchup with the same team!")
             else:
-                # Initialize week if it doesn't exist
-                if matchup_week not in st.session_state.playoff_matchups:
-                    st.session_state.playoff_matchups[matchup_week] = []
+                if matchup_week not in st.session_state[session_key]:
+                    st.session_state[session_key][matchup_week] = []
 
-                # Check if matchup already exists for this week
                 exists = any(
                     (m['team1']['team_name'] == team1_data['team_name'] and
                      m['team2']['team_name'] == team2_data['team_name']) or
                     (m['team1']['team_name'] == team2_data['team_name'] and
                      m['team2']['team_name'] == team1_data['team_name'])
-                    for m in st.session_state.playoff_matchups[matchup_week]
+                    for m in st.session_state[session_key][matchup_week]
                 )
 
                 if exists:
                     st.warning(f"This matchup already exists for week {matchup_week}!")
                 else:
-                    st.session_state.playoff_matchups[matchup_week].append({
+                    st.session_state[session_key][matchup_week].append({
                         'team1': team1_data,
-                        'team2': team2_data
+                        'team2': team2_data,
+                        'type': matchup_type
                     })
-                    # Save to file after creating matchup
-                    if save_matchups_to_file(st.session_state.playoff_matchups):
+                    if storage.save_playoff_matchups(st.session_state[session_key]):
                         st.success(
-                            f"Created matchup for week {matchup_week}: {team1_data['team_name']} vs {team2_data['team_name']}")
+                            f"Created {matchup_type} matchup for week {matchup_week}: {team1_data['team_name']} vs {team2_data['team_name']}")
                         st.rerun()
+                    else:
+                        st.error("Failed to save matchup to Google Sheets")
 
     # Display existing matchups
     st.markdown("---")
     st.subheader("🏆 Playoff Matchups")
 
-    if not st.session_state.playoff_matchups or all(
-            len(matchups) == 0 for matchups in st.session_state.playoff_matchups.values()):
-        st.info("No matchups created yet. Create one above to get started!")
+    if not st.session_state[session_key] or all(
+            len(matchups) == 0 for matchups in st.session_state[session_key].values()):
+        st.info("No playoff matchups created yet. Create one above to get started!")
     else:
         current_week = get_current_week()
 
-        # Week selector for viewing different weeks
         all_weeks_with_matchups = sorted(
-            [week for week, matchups in st.session_state.playoff_matchups.items() if matchups])
+            [week for week, matchups in st.session_state[session_key].items() if matchups])
 
         if not all_weeks_with_matchups:
-            st.info("No matchups created yet. Create one above to get started!")
+            st.info("No playoff matchups created yet. Create one above to get started!")
             return
 
         week_options = [f"{week} (current week)" if week == current_week else str(week) for week in
@@ -193,7 +187,7 @@ def render_playoffs_tab():
                 ":grey[Select Week]",
                 options=week_options,
                 index=len(week_options) - 1 if current_week in all_weeks_with_matchups else 0,
-                key="playoff_week_selector"
+                key="matchup_week_selector"
             )
             selected_week = int(selected_week_display.split()[0])
         with col2:
@@ -203,14 +197,12 @@ def render_playoffs_tab():
 
         st.markdown("")
 
-        # Get playoff standings for seed information (reuse if already loaded)
         if playoff_df is None:
             standings_df = fetch_all_leagues()
             matchups_df = fetch_all_matchups()
             playoff_df = calculate_playoff_standings(standings_df, matchups_df)
 
-        # Display matchups for selected week
-        week_matchups = st.session_state.playoff_matchups.get(selected_week, [])
+        week_matchups = st.session_state[session_key].get(selected_week, [])
 
         if not week_matchups:
             st.info(f"No matchups for week {selected_week}")
@@ -219,6 +211,7 @@ def render_playoffs_tab():
         for idx, matchup in enumerate(week_matchups):
             team1 = matchup['team1']
             team2 = matchup['team2']
+            matchup_type = matchup.get('type', 'Championship')
 
             # Get team logos
             team1_logo = ""
@@ -270,17 +263,56 @@ def render_playoffs_tab():
             team1_owner = TEAM_OWNERS.get(team1['team_name'], "")
             team2_owner = TEAM_OWNERS.get(team2['team_name'], "")
 
+            # Check if in edit mode for this matchup
+            edit_key = f"{selected_week}_{idx}"
+            is_editing = st.session_state.edit_mode == edit_key
+
             with st.container(border=True):
-                # Matchup header with delete button
-                col_header, col_delete = st.columns([20, 1])
+                # Matchup header with type badge and buttons
+                col_header, col_edit, col_delete = st.columns([18, 1, 1])
+
                 with col_header:
-                    st.markdown(f"### Matchup {idx + 1}")
+                    type_color = MATCHUP_TYPE_COLORS.get(matchup_type, "#9b59b6")
+                    st.markdown(f"""
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="margin: 0;">Matchup {idx + 1}</h3>
+                            <span style="background-color: {type_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">{matchup_type}</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                with col_edit:
+                    if is_editing:
+                        if st.button("💾", key=f"save_{edit_key}", help="Save changes"):
+                            st.session_state.edit_mode = None
+                            storage.save_playoff_matchups(st.session_state[session_key])
+                            st.rerun()
+                    else:
+                        if st.button("✏️", key=f"edit_{edit_key}", help="Edit matchup"):
+                            st.session_state.edit_mode = edit_key
+                            st.rerun()
+
                 with col_delete:
-                    if st.button("🗑", key=f"delete_{selected_week}_{idx}", help="Delete this matchup"):
-                        st.session_state.playoff_matchups[selected_week].pop(idx)
-                        # Save to file after deleting matchup
-                        save_matchups_to_file(st.session_state.playoff_matchups)
+                    if st.button("🗑", key=f"delete_{edit_key}", help="Delete this matchup"):
+                        st.session_state[session_key][selected_week].pop(idx)
+                        storage.save_playoff_matchups(st.session_state[session_key])
                         st.rerun()
+
+                # Edit mode
+                if is_editing:
+                    st.markdown("**Edit Matchup Type**")
+
+                    # Create edit options for matchup type
+                    new_type = st.selectbox(
+                        "Playoff Round",
+                        options=MATCHUP_TYPES,
+                        index=MATCHUP_TYPES.index(matchup_type) if matchup_type in MATCHUP_TYPES else 0,
+                        key=f"edit_type_{edit_key}"
+                    )
+
+                    # Update matchup type if changed
+                    st.session_state[session_key][selected_week][idx]['type'] = new_type
+
+                    st.info("Click the save button (💾) to save your changes")
 
                 # Team 1
                 st.markdown(f"""
@@ -291,7 +323,7 @@ def render_playoffs_tab():
                                 <div style="{'font-weight: bold;' if team1_winning else ''} font-size: 18px;">
                                     {team1['team_name']} <span style="font-size: 14px; color: #888; font-weight: normal; margin-left: 5px;">{team1_owner}</span>
                                 </div>
-                                <div style="font-size: 13px; color: #666; margin-top: 2px;">({team1['league_name']}, {team1['wins']}-{team1['losses']}, {team1_seed}{'st' if team1_seed == 1 else 'nd' if team1_seed == 2 else 'rd' if team1_seed == 3 else 'th' if isinstance(team1_seed, int) else ''})</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 2px;">({team1['league_name']}, {team1['wins']}-{team1['losses']}, {get_ordinal(team1_seed) if isinstance(team1_seed, int) else team1_seed})</div>
                             </div>
                         </div>
                         <div style="font-size: 32px; font-weight: bold; color: {'#3eab43' if team1_winning else '#666'};">
@@ -309,7 +341,7 @@ def render_playoffs_tab():
                                 <div style="{'font-weight: bold;' if team2_winning else ''} font-size: 18px;">
                                     {team2['team_name']} <span style="font-size: 14px; color: #888; font-weight: normal; margin-left: 5px;">{team2_owner}</span>
                                 </div>
-                                <div style="font-size: 13px; color: #666; margin-top: 2px;">({team2['league_name']}, {team2['wins']}-{team2['losses']}, {team2_seed}{'st' if team2_seed == 1 else 'nd' if team2_seed == 2 else 'rd' if team2_seed == 3 else 'th' if isinstance(team2_seed, int) else ''})</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 2px;">({team2['league_name']}, {team2['wins']}-{team2['losses']}, {get_ordinal(team2_seed) if isinstance(team2_seed, int) else team2_seed})</div>
                             </div>
                         </div>
                         <div style="font-size: 32px; font-weight: bold; color: {'#3eab43' if team2_winning else '#666'};">

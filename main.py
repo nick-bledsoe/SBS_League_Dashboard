@@ -2,7 +2,7 @@ import streamlit as st
 import base64
 from page_home import render_home_tab
 from page_teams import render_teams_tab
-from page_playoffs import render_playoffs_tab
+from page_admin import render_admin_tab  # Changed from page_playoffs/page_matchups
 
 # Page configuration
 st.set_page_config(
@@ -20,10 +20,10 @@ with col2:
         unsafe_allow_html=True
     )
     st.markdown("<h1 style='text-align: center'><em>SBS League Dashboard</em></h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: orange'>2025 quest for the Coach Smith Cup</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: orange'>Quest for the Coach Smith Cup</h3>", unsafe_allow_html=True)
 
 # Navigation tabs
-tab1, tab2, tab3 = st.tabs(["Home", "Teams", "Playoffs"])
+tab1, tab2, tab3 = st.tabs(["Home", "Teams", "Admin"])  # Changed "Playoffs" to "Admin"
 
 # HOME TAB
 with tab1:
@@ -33,9 +33,9 @@ with tab1:
 with tab2:
     render_teams_tab()
 
-# PLAYOFFS TAB
+# ADMIN TAB
 with tab3:
-    render_playoffs_tab()
+    render_admin_tab()
 
 # Footer
 st.caption("_Data sourced from ESPN Fantasy Football API - Created by Nick Bledsoe (2025)_")

@@ -72,7 +72,7 @@ def render_teams_tab():
                     </div>
                     <div>
                         <div style="font-size: 1rem; color: #808495; font-weight: 600;">Seed</div>
-                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{team_seed}{'st' if team_seed == 1 else 'nd' if team_seed == 2 else 'rd' if team_seed == 3 else 'th'}</div>
+                        <div style="font-size: 2rem; font-weight: 600; line-height: 1.2;">{get_ordinal(team_seed)}</div>
                     </div>
                     <div>
                         <div style="font-size: 1rem; color: #808495; font-weight: 600;">Owner</div>

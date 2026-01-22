@@ -1,21 +1,6 @@
 from utils import *
-import json
-import os
-
-MATCHUPS_FILE = "playoff_matchups.json"
-
-
-def load_playoff_matchups():
-    """Load playoff matchups from JSON file"""
-    if os.path.exists(MATCHUPS_FILE):
-        try:
-            with open(MATCHUPS_FILE, 'r') as f:
-                data = json.load(f)
-                # Convert string keys back to integers
-                return {int(k): v for k, v in data.items()}
-        except Exception as e:
-            return {}
-    return {}
+import streamlit as st
+from utils_storage import get_storage
 
 
 def get_team_score_for_week(league_id, team_name, week):
@@ -226,15 +211,24 @@ def render_home_tab():
         if matchups_df is not None and not matchups_df.empty:
             current_week = get_current_week()
 
-            # Load playoff matchups
-            playoff_matchups = load_playoff_matchups()
+            # Load playoff matchups from Google Sheets for current season
+            from utils_storage import get_current_season
+            current_season = get_current_season()
+            storage = get_storage(season=current_season)
+            playoff_matchups = storage.load_playoff_matchups()
+
+            # Uncomment to debug:
+            # st.write("DEBUG - playoff_matchups keys:", list(playoff_matchups.keys()) if playoff_matchups else "None")
+            # st.write("DEBUG - current_week:", current_week)
+            # st.write("DEBUG - current_season:", current_season)
 
             # Determine if we have playoff matchups for current week
             has_playoff_matchups = bool(
                 playoff_matchups and current_week in playoff_matchups and playoff_matchups[current_week])
 
             # Default to playoff matchups if week 16+ and they exist, otherwise regular season
-            default_matchup_type = "Playoffs" if (current_week >= 16 and has_playoff_matchups) else "Regular Season"
+            # OR if there are playoff matchups for current week regardless of week number
+            default_matchup_type = "Playoffs" if has_playoff_matchups else "Regular Season"
 
             # Matchup type selector
             col1, col2 = st.columns([2, 6])
@@ -265,16 +259,20 @@ def render_home_tab():
                     if playoff_weeks:
                         playoff_week_options = [f"{week} (current week)" if week == current_week else str(week) for week
                                                 in playoff_weeks]
+
+                        # Default to current week if it exists, otherwise most recent week
+                        default_playoff_index = playoff_weeks.index(
+                            current_week) if current_week in playoff_weeks else len(playoff_weeks) - 1
+
                         selected_week_display = st.selectbox(
                             ":grey[Select Week]",
                             options=playoff_week_options,
-                            index=playoff_weeks.index(current_week) if current_week in playoff_weeks else len(
-                                playoff_weeks) - 1,
+                            index=default_playoff_index,
                             key="home_playoff_week_selector"
                         )
                         selected_week = int(selected_week_display.split()[0])
                     else:
-                        st.info("No playoff matchups created yet. Go to the Playoffs tab to create matchups.")
+                        st.info("No playoff matchups created yet. Go to the Admin tab to create matchups.")
                         return
 
             st.markdown("")
@@ -305,8 +303,8 @@ def render_home_tab():
                                     0] if league_teams is not None and not league_teams[
                                     league_teams['Name'] == matchup['Away Team']].empty else None
 
-                                home_record = f"({int(home_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Home Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {home_team_info['Rank']}{'st' if home_team_info['Rank'] == 1 else 'nd' if home_team_info['Rank'] == 2 else 'rd' if home_team_info['Rank'] == 3 else 'th'})" if home_team_info is not None else ""
-                                away_record = f"({int(away_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Away Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {away_team_info['Rank']}{'st' if away_team_info['Rank'] == 1 else 'nd' if away_team_info['Rank'] == 2 else 'rd' if away_team_info['Rank'] == 3 else 'th'})" if away_team_info is not None else ""
+                                home_record = f"({int(home_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Home Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {get_ordinal(int(home_team_info['Rank']))})" if home_team_info is not None else ""
+                                away_record = f"({int(away_team_info['Wins'])}-{standings_df[(standings_df['Name'] == matchup['Away Team']) & (standings_df['League'] == league_name)].iloc[0]['Losses']}, {get_ordinal(int(away_team_info['Rank']))})" if away_team_info is not None else ""
 
                                 # Get owner names
                                 home_owner = TEAM_OWNERS.get(matchup['Home Team'], "")
@@ -363,10 +361,20 @@ def render_home_tab():
                     num_matchups = len(week_playoff_matchups)
                     cols = st.columns(min(3, num_matchups))
 
+                    # Matchup type colors
+                    MATCHUP_TYPE_COLORS = {
+                        "Quarterfinal": "#ffd700",
+                        "Semifinal": "#ff6b6b",
+                        "3rd Place": "#4ecdc4",
+                        "Championship": "#9b59b6"
+                    }
+
                     for idx, matchup in enumerate(week_playoff_matchups):
                         with cols[idx % 3]:
                             team1 = matchup['team1']
                             team2 = matchup['team2']
+                            matchup_type = matchup.get('type', 'Championship')
+                            type_color = MATCHUP_TYPE_COLORS.get(matchup_type, "#9b59b6")
 
                             # Get team logos
                             team1_logo = ""
@@ -419,6 +427,13 @@ def render_home_tab():
                             team2_owner = TEAM_OWNERS.get(team2['team_name'], "")
 
                             with st.container(border=True):
+                                # Matchup type badge
+                                st.markdown(f"""
+                                    <div style="text-align: center; margin-bottom: 8px;">
+                                        <span style="background-color: {type_color}; color: white; padding: 4px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;">{matchup_type}</span>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
                                 # Team 1
                                 st.markdown(f"""
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -428,7 +443,7 @@ def render_home_tab():
                                                 <div style="{'font-weight: bold;' if team1_winning else ''} font-size: 16px;">
                                                     {team1['team_name']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{team1_owner}</span>
                                                 </div>
-                                                <div style="font-size: 12px; color: #666; margin-top: 2px;">({team1['league_name']}, {team1['wins']}-{team1['losses']}, {team1_seed}{'st' if team1_seed == 1 else 'nd' if team1_seed == 2 else 'rd' if team1_seed == 3 else 'th' if isinstance(team1_seed, int) else ''})</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px;">({team1['league_name']}, {team1['wins']}-{team1['losses']}, {get_ordinal(team1_seed) if isinstance(team1_seed, int) else team1_seed})</div>
                                             </div>
                                         </div>
                                         <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if team1_winning else '#666'};">
@@ -446,7 +461,7 @@ def render_home_tab():
                                                 <div style="{'font-weight: bold;' if team2_winning else ''} font-size: 16px;">
                                                     {team2['team_name']} <span style="font-size: 13px; color: #888; font-weight: normal; margin-left: 5px;">{team2_owner}</span>
                                                 </div>
-                                                <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">({team2['league_name']}, {team2['wins']}-{team2['losses']}, {team2_seed}{'st' if team2_seed == 1 else 'nd' if team2_seed == 2 else 'rd' if team2_seed == 3 else 'th' if isinstance(team2_seed, int) else ''})</div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 2px; margin-bottom: 8px;">({team2['league_name']}, {team2['wins']}-{team2['losses']}, {get_ordinal(team2_seed) if isinstance(team2_seed, int) else team2_seed})</div>
                                             </div>
                                         </div>
                                         <div style="font-size: 24px; font-weight: bold; color: {'#3eab43' if team2_winning else '#666'};">
