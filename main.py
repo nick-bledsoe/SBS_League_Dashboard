@@ -2,7 +2,8 @@ import streamlit as st
 import base64
 from page_home import render_home_tab
 from page_teams import render_teams_tab
-from page_admin import render_admin_tab  # Changed from page_playoffs/page_matchups
+from page_scoreboard import render_scoreboard_tab
+from page_admin import render_admin_tab
 
 # Page configuration
 st.set_page_config(
@@ -23,7 +24,7 @@ with col2:
     st.markdown("<h3 style='text-align: center; color: orange'>Quest for the Coach Smith Cup</h3>", unsafe_allow_html=True)
 
 # Navigation tabs
-tab1, tab2, tab3 = st.tabs(["Home", "Teams", "Admin"])  # Changed "Playoffs" to "Admin"
+tab1, tab2, tab3, tab4 = st.tabs(["Home", "Teams", "Scoreboard", "Admin"])
 
 # HOME TAB
 with tab1:
@@ -33,8 +34,12 @@ with tab1:
 with tab2:
     render_teams_tab()
 
-# ADMIN TAB
+# SCOREBOARD TAB
 with tab3:
+    render_scoreboard_tab()
+
+# ADMIN TAB
+with tab4:
     render_admin_tab()
 
 # Footer

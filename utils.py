@@ -181,6 +181,7 @@ def get_team_roster(data, team_id):
                 player_pool_entry = entry.get('playerPoolEntry', {})
                 player_info = player_pool_entry.get('player', {})
                 player_name = player_info.get('fullName', 'Unknown')
+                player_id = player_info.get('id', '')
                 lineup_slot_id = entry.get('lineupSlotId', 0)
                 pro_team_id = player_info.get('proTeamId')
                 nfl_team = NFL_TEAMS.get(pro_team_id, 'N/A') if pro_team_id else 'N/A'
@@ -207,7 +208,8 @@ def get_team_roster(data, team_id):
                     'NFL Team': nfl_team,
                     'NFL Logo': nfl_logo,
                     'Rank': positional_rank if positional_rank else '-',
-                    'Sort': sort_order
+                    'Sort': sort_order,
+                    'player_id': player_id
                 })
 
             players.sort(key=lambda x: x['Sort'])
@@ -425,3 +427,121 @@ def calculate_playoff_standings(df, matchups_df=None):
     result_df['Rank'] = range(1, len(result_df) + 1)
     result_df = result_df[['Rank', 'Name', 'League', 'Wins', 'Points For', 'Points Against', 'Streak']]
     return result_df
+
+
+def parse_roster(roster_data):
+    """Parse roster entries into clean player data"""
+    players = []
+
+    entries = roster_data.get('entries', [])
+
+    for entry in entries:
+        player_pool = entry.get('playerPoolEntry', {})
+        player_info = player_pool.get('player', {})
+
+        # Get player stats (scores)
+        stats = player_info.get('stats', [])
+        points = 0
+        if stats and len(stats) > 0:
+            points = round(stats[0].get('appliedTotal', 0), 2)
+
+        # Get position from defaultPositionId
+        default_position_id = player_info.get('defaultPositionId', 0)
+        if default_position_id == 1:
+            position = 'QB'
+        elif default_position_id == 5:
+            position = 'K'
+        elif default_position_id == 7:
+            position = 'P'
+        else:
+            position = 'UNKNOWN'
+
+        # Get NFL team
+        pro_team_id = player_info.get('proTeamId')
+        nfl_team = NFL_TEAMS.get(pro_team_id, 'N/A') if pro_team_id else 'N/A'
+
+        # Get player ID for headshot
+        player_id = player_info.get('id', '')
+
+        player_data = {
+            'name': player_info.get('fullName', 'Unknown'),
+            'position': position,
+            'nfl_team': nfl_team,
+            'points': points,
+            'slot_id': entry.get('lineupSlotId', 0),
+            'is_starter': True,  # All players are starters (no bench)
+            'player_id': player_id
+        }
+
+        players.append(player_data)
+
+    # Sort by position order, then by points
+    position_order = {'QB': 0, 'K': 1, 'P': 2}
+    players.sort(key=lambda x: (position_order.get(x['position'], 99), -x['points']))
+
+    return players
+
+
+def get_matchup_roster_details(league_id, week):
+    """
+    Get detailed player-level scoring for all matchups in a week
+    Returns a list of matchups with full roster breakdowns
+    """
+    # Use special URL with mBoxscore view to get player details
+    url = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2025/segments/0/leagues/{league_id}?scoringPeriodId={week}&view=mBoxscore&view=mMatchupScore&view=mRoster&view=mSettings&view=mStatus&view=mTeam&view=modular&view=mNav&platformVersion=f23636631f3d5609b41daa409faa6f587135a0fb"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching matchup details: {e}")
+        return None
+
+    schedule = data.get('schedule', [])
+    teams = data.get('teams', [])
+
+    # Create team name and logo mapping
+    team_map = {team.get('id'): team.get('name', 'Unknown') for team in teams}
+    logo_map = {team.get('id'): team.get('logo', '') for team in teams}
+
+    matchups = []
+
+    for matchup in schedule:
+        if matchup.get('matchupPeriodId') != week:
+            continue
+
+        home = matchup.get('home', {})
+        away = matchup.get('away', {})
+
+        if not away:  # Skip bye weeks
+            continue
+
+        home_team_id = home.get('teamId')
+        away_team_id = away.get('teamId')
+
+        # Use rosterForMatchupPeriod - it has both correct scores AND positions
+        home_roster = parse_roster(home.get('rosterForMatchupPeriod', {}))
+        away_roster = parse_roster(away.get('rosterForMatchupPeriod', {}))
+
+        matchup_info = {
+            'week': week,
+            'home_team': {
+                'id': home_team_id,
+                'name': team_map.get(home_team_id, 'Unknown'),
+                'logo': logo_map.get(home_team_id, ''),
+                'total_points': round(home.get('totalPoints', 0), 1),
+                'roster': home_roster
+            },
+            'away_team': {
+                'id': away_team_id,
+                'name': team_map.get(away_team_id, 'Unknown'),
+                'logo': logo_map.get(away_team_id, ''),
+                'total_points': round(away.get('totalPoints', 0), 1),
+                'roster': away_roster
+            }
+        }
+
+        matchups.append(matchup_info)
+
+    return matchups

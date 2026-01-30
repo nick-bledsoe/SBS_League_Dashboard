@@ -146,16 +146,20 @@ def render_home_tab():
                         performances.append({
                             'Week': week,
                             'Team Name': matchup['Home Team'],
+                            'Owner': TEAM_OWNERS.get(matchup['Home Team'], ''),
                             'League': matchup['League'],
                             'Score': matchup['Home Score'],
-                            'Opponent': matchup['Away Team']
+                            'Opponent': matchup['Away Team'],
+                            'Opponent Owner': TEAM_OWNERS.get(matchup['Away Team'], '')
                         })
                         performances.append({
                             'Week': week,
                             'Team Name': matchup['Away Team'],
+                            'Owner': TEAM_OWNERS.get(matchup['Away Team'], ''),
                             'League': matchup['League'],
                             'Score': matchup['Away Score'],
-                            'Opponent': matchup['Home Team']
+                            'Opponent': matchup['Home Team'],
+                            'Opponent Owner': TEAM_OWNERS.get(matchup['Home Team'], '')
                         })
 
                 if performances:
@@ -164,15 +168,11 @@ def render_home_tab():
 
             if weekly_high_scores:
                 high_scores_df = pd.DataFrame(weekly_high_scores)
-                high_scores_df = high_scores_df.sort_values('Week', ascending=False)
-
-                # Add owner names to team display and opponent display
-                high_scores_df['Team Display'] = high_scores_df['Team Name'].apply(
-                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
-                )
-                high_scores_df['Opponent Display'] = high_scores_df['Opponent'].apply(
-                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
-                )
+                high_scores_df['Team Display'] = high_scores_df.apply(
+                    lambda row: f"{row['Team Name']} ({row['Owner']})" if row['Owner'] else row['Team Name'], axis=1)
+                high_scores_df['Opponent Display'] = high_scores_df.apply(
+                    lambda row: f"{row['Opponent']} ({row['Opponent Owner']})" if row['Opponent Owner'] else row[
+                        'Opponent'], axis=1)
 
                 st.dataframe(
                     high_scores_df[['Week', 'Team Display', 'League', 'Score', 'Opponent Display']],
@@ -341,6 +341,64 @@ def render_home_tab():
                                         </div>
                                     """, unsafe_allow_html=True)
 
+                                    # Add top scorers dropdown
+                                    with st.expander("Top Scorers", expanded=False):
+                                        # Get detailed rosters
+                                        detailed_matchups = get_matchup_roster_details(LEAGUES[league_name],
+                                                                                       selected_week)
+
+                                        if detailed_matchups:
+                                            # Find this specific matchup
+                                            home_roster = None
+                                            away_roster = None
+
+                                            for dm in detailed_matchups:
+                                                if dm['home_team']['name'] == matchup['Home Team'] and dm['away_team'][
+                                                    'name'] == matchup['Away Team']:
+                                                    home_roster = dm['home_team']['roster']
+                                                    away_roster = dm['away_team']['roster']
+                                                    break
+
+                                            if home_roster and away_roster:
+                                                col_top1, col_top2 = st.columns(2)
+
+                                                with col_top1:
+                                                    # Sort by points and get top 3
+                                                    top_home = sorted(home_roster, key=lambda x: x['points'],
+                                                                      reverse=True)[:3]
+                                                    for player in top_home:
+                                                        color = "#3eab43" if player['points'] >= 5 else "#666"
+                                                        player_id = player.get('player_id', '')
+                                                        headshot = f"https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{player_id}.png&w=96&h=70&cb=1" if player_id else ""
+
+                                                        st.markdown(f"""
+                                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px; margin: 2px 0;">
+                                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                                    <img src="{headshot}" style="width: 25px; height: 18px; border-radius: 3px; object-fit: cover;" onerror="this.style.display='none'">
+                                                                    <div style="font-size: 12px;">{player['name']}</div>
+                                                                </div>
+                                                                <div style="font-size: 12px; font-weight: bold; color: {color};">{player['points']}</div>
+                                                            </div>
+                                                        """, unsafe_allow_html=True)
+
+                                                with col_top2:
+                                                    top_away = sorted(away_roster, key=lambda x: x['points'],
+                                                                      reverse=True)[:3]
+                                                    for player in top_away:
+                                                        color = "#3eab43" if player['points'] >= 5 else "#666"
+                                                        player_id = player.get('player_id', '')
+                                                        headshot = f"https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{player_id}.png&w=96&h=70&cb=1" if player_id else ""
+
+                                                        st.markdown(f"""
+                                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px; margin: 2px 0;">
+                                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                                    <img src="{headshot}" style="width: 25px; height: 18px; border-radius: 3px; object-fit: cover;" onerror="this.style.display='none'">
+                                                                    <div style="font-size: 12px;">{player['name']}</div>
+                                                                </div>
+                                                                <div style="font-size: 12px; font-weight: bold; color: {color};">{player['points']}</div>
+                                                            </div>
+                                                        """, unsafe_allow_html=True)
+
                         else:
                             st.info(f"No matchups for week {selected_week}")
 
@@ -469,6 +527,75 @@ def render_home_tab():
                                         </div>
                                     </div>
                                 """, unsafe_allow_html=True)
+
+                                # Add top scorers dropdown for playoff matchups
+                                with st.expander("Top Scorers", expanded=False):
+                                    # Get detailed rosters for both teams
+                                    team1_roster = []
+                                    team2_roster = []
+
+                                    # Fetch rosters from each team's league
+                                    team1_detailed = get_matchup_roster_details(team1['league_id'], selected_week)
+                                    if team1_detailed:
+                                        for dm in team1_detailed:
+                                            if dm['home_team']['id'] == team1['team_id']:
+                                                team1_roster = dm['home_team']['roster']
+                                                break
+                                            elif dm['away_team']['id'] == team1['team_id']:
+                                                team1_roster = dm['away_team']['roster']
+                                                break
+
+                                    team2_detailed = get_matchup_roster_details(team2['league_id'], selected_week)
+                                    if team2_detailed:
+                                        for dm in team2_detailed:
+                                            if dm['home_team']['id'] == team2['team_id']:
+                                                team2_roster = dm['home_team']['roster']
+                                                break
+                                            elif dm['away_team']['id'] == team2['team_id']:
+                                                team2_roster = dm['away_team']['roster']
+                                                break
+
+                                    if team1_roster and team2_roster:
+                                        col_top1, col_top2 = st.columns(2)
+
+                                        with col_top1:
+                                            # Sort by points and get top 3
+                                            top_team1 = sorted(team1_roster, key=lambda x: x['points'],
+                                                              reverse=True)[:3]
+                                            for player in top_team1:
+                                                color = "#3eab43" if player['points'] >= 5 else "#666"
+                                                player_id = player.get('player_id', '')
+                                                headshot = f"https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{player_id}.png&w=96&h=70&cb=1" if player_id else ""
+
+                                                st.markdown(f"""
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px; margin: 2px 0;">
+                                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                                            <img src="{headshot}" style="width: 25px; height: 18px; border-radius: 3px; object-fit: cover;" onerror="this.style.display='none'">
+                                                            <div style="font-size: 12px;">{player['name']}</div>
+                                                        </div>
+                                                        <div style="font-size: 12px; font-weight: bold; color: {color};">{player['points']}</div>
+                                                    </div>
+                                                """, unsafe_allow_html=True)
+
+                                        with col_top2:
+                                            top_team2 = sorted(team2_roster, key=lambda x: x['points'],
+                                                              reverse=True)[:3]
+                                            for player in top_team2:
+                                                color = "#3eab43" if player['points'] >= 5 else "#666"
+                                                player_id = player.get('player_id', '')
+                                                headshot = f"https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{player_id}.png&w=96&h=70&cb=1" if player_id else ""
+
+                                                st.markdown(f"""
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px; margin: 2px 0;">
+                                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                                            <img src="{headshot}" style="width: 25px; height: 18px; border-radius: 3px; object-fit: cover;" onerror="this.style.display='none'">
+                                                            <div style="font-size: 12px;">{player['name']}</div>
+                                                        </div>
+                                                        <div style="font-size: 12px; font-weight: bold; color: {color};">{player['points']}</div>
+                                                    </div>
+                                                """, unsafe_allow_html=True)
+                                    else:
+                                        st.info("Roster data not available")
 
                             st.write("")
         else:

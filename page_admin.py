@@ -187,7 +187,7 @@ def render_admin_tab():
                 ":grey[Select Week]",
                 options=week_options,
                 index=len(week_options) - 1 if current_week in all_weeks_with_matchups else 0,
-                key="matchup_week_selector"
+                key="admin_matchup_week_selector"
             )
             selected_week = int(selected_week_display.split()[0])
         with col2:
