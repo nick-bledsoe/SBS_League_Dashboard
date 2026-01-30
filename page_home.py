@@ -342,7 +342,7 @@ def render_home_tab():
                                     """, unsafe_allow_html=True)
 
                                     # Add top scorers dropdown
-                                    with st.expander("🏆 Top Scorers", expanded=False):
+                                    with st.expander("Top Scorers", expanded=False):
                                         # Get detailed rosters
                                         detailed_matchups = get_matchup_roster_details(LEAGUES[league_name],
                                                                                        selected_week)
@@ -533,7 +533,7 @@ def render_home_tab():
                                 """, unsafe_allow_html=True)
 
                                 # Add top scorers dropdown for playoff matchups
-                                with st.expander("🏆 Top Scorers", expanded=False):
+                                with st.expander("Top Scorers", expanded=False):
                                     # Get detailed rosters for both teams
                                     team1_roster = []
                                     team2_roster = []
