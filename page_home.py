@@ -146,20 +146,16 @@ def render_home_tab():
                         performances.append({
                             'Week': week,
                             'Team Name': matchup['Home Team'],
-                            'Owner': TEAM_OWNERS.get(matchup['Home Team'], ''),
                             'League': matchup['League'],
                             'Score': matchup['Home Score'],
-                            'Opponent': matchup['Away Team'],
-                            'Opponent Owner': TEAM_OWNERS.get(matchup['Away Team'], '')
+                            'Opponent': matchup['Away Team']
                         })
                         performances.append({
                             'Week': week,
                             'Team Name': matchup['Away Team'],
-                            'Owner': TEAM_OWNERS.get(matchup['Away Team'], ''),
                             'League': matchup['League'],
                             'Score': matchup['Away Score'],
-                            'Opponent': matchup['Home Team'],
-                            'Opponent Owner': TEAM_OWNERS.get(matchup['Home Team'], '')
+                            'Opponent': matchup['Home Team']
                         })
 
                 if performances:
@@ -168,11 +164,15 @@ def render_home_tab():
 
             if weekly_high_scores:
                 high_scores_df = pd.DataFrame(weekly_high_scores)
-                high_scores_df['Team Display'] = high_scores_df.apply(
-                    lambda row: f"{row['Team Name']} ({row['Owner']})" if row['Owner'] else row['Team Name'], axis=1)
-                high_scores_df['Opponent Display'] = high_scores_df.apply(
-                    lambda row: f"{row['Opponent']} ({row['Opponent Owner']})" if row['Opponent Owner'] else row[
-                        'Opponent'], axis=1)
+                high_scores_df = high_scores_df.sort_values('Week', ascending=False)
+
+                # Add owner names to team display and opponent display
+                high_scores_df['Team Display'] = high_scores_df['Team Name'].apply(
+                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
+                )
+                high_scores_df['Opponent Display'] = high_scores_df['Opponent'].apply(
+                    lambda x: f"{x} ({TEAM_OWNERS.get(x, '')})" if TEAM_OWNERS.get(x) else x
+                )
 
                 st.dataframe(
                     high_scores_df[['Week', 'Team Display', 'League', 'Score', 'Opponent Display']],
@@ -342,7 +342,7 @@ def render_home_tab():
                                     """, unsafe_allow_html=True)
 
                                     # Add top scorers dropdown
-                                    with st.expander("Top Scorers", expanded=False):
+                                    with st.expander("🏆 Top Scorers", expanded=False):
                                         # Get detailed rosters
                                         detailed_matchups = get_matchup_roster_details(LEAGUES[league_name],
                                                                                        selected_week)
@@ -363,6 +363,8 @@ def render_home_tab():
                                                 col_top1, col_top2 = st.columns(2)
 
                                                 with col_top1:
+                                                    # Add team name header
+                                                    st.markdown(f"**{matchup['Home Team']}**")
                                                     # Sort by points and get top 3
                                                     top_home = sorted(home_roster, key=lambda x: x['points'],
                                                                       reverse=True)[:3]
@@ -382,6 +384,8 @@ def render_home_tab():
                                                         """, unsafe_allow_html=True)
 
                                                 with col_top2:
+                                                    # Add team name header
+                                                    st.markdown(f"**{matchup['Away Team']}**")
                                                     top_away = sorted(away_roster, key=lambda x: x['points'],
                                                                       reverse=True)[:3]
                                                     for player in top_away:
@@ -529,7 +533,7 @@ def render_home_tab():
                                 """, unsafe_allow_html=True)
 
                                 # Add top scorers dropdown for playoff matchups
-                                with st.expander("Top Scorers", expanded=False):
+                                with st.expander("🏆 Top Scorers", expanded=False):
                                     # Get detailed rosters for both teams
                                     team1_roster = []
                                     team2_roster = []
@@ -559,6 +563,8 @@ def render_home_tab():
                                         col_top1, col_top2 = st.columns(2)
 
                                         with col_top1:
+                                            # Add team name header
+                                            st.markdown(f"**{team1['team_name']}**")
                                             # Sort by points and get top 3
                                             top_team1 = sorted(team1_roster, key=lambda x: x['points'],
                                                               reverse=True)[:3]
@@ -578,6 +584,8 @@ def render_home_tab():
                                                 """, unsafe_allow_html=True)
 
                                         with col_top2:
+                                            # Add team name header
+                                            st.markdown(f"**{team2['team_name']}**")
                                             top_team2 = sorted(team2_roster, key=lambda x: x['points'],
                                                               reverse=True)[:3]
                                             for player in top_team2:
