@@ -348,6 +348,9 @@ def calculate_playoff_standings(df, matchups_df=None):
 
     all_teams = df.copy()
 
+    # Ensure Wins column is float to support the 0.5 bonus later
+    all_teams['Wins'] = all_teams['Wins'].astype(float)
+
     # Apply weekly high score bonus
     if matchups_df is not None and not matchups_df.empty:
         all_performances = []
