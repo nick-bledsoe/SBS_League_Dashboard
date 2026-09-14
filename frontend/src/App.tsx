@@ -25,7 +25,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-4">
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
             <img
-              src="/coachSmith.png"
+              src={`${import.meta.env.BASE_URL}coachSmith.png`}
               alt=""
               className="w-8 h-8 shrink-0 drop-shadow-[0_0_10px_rgba(237,160,31,0.4)]"
             />
