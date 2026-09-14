@@ -9,7 +9,7 @@ LEAGUES = {
     "Clunks": "112677575"
 }
 
-API_BASE_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2025/segments/0/leagues/{leagueId}?view=mLiveScoring&view=mMatchupScore&view=mRoster&view=mSettings&view=mStandings&view=mStatus&view=mTeam&view=modular&view=mNav&view=mDraftDetail&platformVersion=ea036b729b6388bc4495a4b40c151e1a7dc80106"
+API_BASE_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2026/segments/0/leagues/{leagueId}?view=mLiveScoring&view=mMatchupScore&view=mRoster&view=mSettings&view=mStandings&view=mStatus&view=mTeam&view=modular&view=mNav&view=mDraftDetail&platformVersion=ea036b729b6388bc4495a4b40c151e1a7dc80106"
 
 # NFL Team ID mapping
 NFL_TEAMS = {
@@ -491,7 +491,7 @@ def get_matchup_roster_details(league_id, week):
     Returns a list of matchups with full roster breakdowns
     """
     # Use special URL with mBoxscore view to get player details
-    url = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2025/segments/0/leagues/{league_id}?scoringPeriodId={week}&view=mBoxscore&view=mMatchupScore&view=mRoster&view=mSettings&view=mStatus&view=mTeam&view=modular&view=mNav&platformVersion=f23636631f3d5609b41daa409faa6f587135a0fb"
+    url = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2026/segments/0/leagues/{league_id}?scoringPeriodId={week}&view=mBoxscore&view=mMatchupScore&view=mRoster&view=mSettings&view=mStatus&view=mTeam&view=modular&view=mNav&platformVersion=f23636631f3d5609b41daa409faa6f587135a0fb"
 
     try:
         response = requests.get(url)
