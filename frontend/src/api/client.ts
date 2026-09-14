@@ -1,4 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+// In production this is a single-domain Vercel deployment (frontend + /api on the
+// same origin), so relative paths just work — leave VITE_API_URL unset there. Local
+// dev runs frontend and backend on separate ports, so it needs the explicit URL
+// (set in frontend/.env, see .env.example).
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export class ApiError extends Error {
   status: number
