@@ -1,0 +1,15 @@
+*service-account*.json
+*credentials*.json
+__pycache__/
+.vercel
+
+# Backend (FastAPI)
+backend/.venv/
+backend/data/*.db
+backend/.env
+backend/.pytest_cache/
+
+# Frontend (React/Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.env

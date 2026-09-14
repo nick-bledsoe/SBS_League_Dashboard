@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lexend", var(--font-sans);
+
+  --color-base: #0a0b0f;
+  --color-surface: #14161d;
+  --color-surface-raised: #1b1e27;
+  --color-line: #262a35;
+  --color-line-strong: #383e4d;
+
+  --color-brand-50: #fef9ec;
+  --color-brand-200: #fbe1a6;
+  --color-brand-400: #f6b93d;
+  --color-brand-500: #eda01f;
+  --color-brand-600: #c97e12;
+
+  --color-ink-100: #f4f5f7;
+  --color-ink-300: #c2c6d1;
+  --color-ink-400: #8b91a3;
+  --color-ink-500: #666c7d;
+  --color-ink-600: #4b5061;
+
+  --color-good: #34d399;
+  --color-good-dim: #10b981;
+  --color-bad: #f87171;
+  --color-bad-dim: #ef4444;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: radial-gradient(ellipse 1200px 600px at 50% -10%, #1a1d2b 0%, var(--color-base) 55%);
+  background-attachment: fixed;
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand-500) 35%, transparent);
+}
+
+* {
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
