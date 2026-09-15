@@ -1,11 +1,13 @@
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, ChevronLeft, ChevronRight, type LucideIcon, Star } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { usePlayerRankings } from '../api/queries'
-import type { TeamRef } from '../api/types'
+import { useCurrentWeek, usePlayerRankings, useTransactionHighlights } from '../api/queries'
+import type { TeamRef, TransactionHighlight } from '../api/types'
 import { PlayerModal } from '../components/PlayerModal'
 import { Card, Section } from '../components/ui/Section'
+import { Select } from '../components/ui/Select'
+import { SortableHeader, type SortDirection } from '../components/ui/SortableHeader'
 import { EmptyState, LoadingState } from '../components/ui/States'
 import { headshotUrl } from '../lib/format'
 
@@ -14,29 +16,90 @@ type PositionTab = (typeof POSITION_TABS)[number]
 
 const PAGE_SIZE = 50
 
+type SortKey = 'name' | 'position' | 'total_points' | 'games_played' | 'avg_points'
+
+// Text columns default to A-Z on first click; stat columns default to highest-first.
+const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
+  name: 'asc',
+  position: 'asc',
+  total_points: 'desc',
+  games_played: 'desc',
+  avg_points: 'desc',
+}
+
 export function PlayersPage() {
   const { data: rankings, isLoading } = usePlayerRankings()
+  const { data: currentWeekData } = useCurrentWeek()
+  const [highlightsWeek, setHighlightsWeek] = useState<number | null>(null)
+  const { data: highlights } = useTransactionHighlights(highlightsWeek ?? undefined)
   const [tab, setTab] = useState<PositionTab>('Overall')
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: 'total_points',
+    direction: 'desc',
+  })
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<{ leagueId: string; playerId: string } | null>(null)
 
+  const handleSort = (key: SortKey) => {
+    setSort((prev) =>
+      prev.key === key ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' } : { key, direction: DEFAULT_DIRECTION[key] },
+    )
+  }
+
   const filtered = useMemo(() => {
     if (!rankings) return []
-    return tab === 'Overall' ? rankings : rankings.filter((r) => r.position === tab)
-  }, [rankings, tab])
+    const base = tab === 'Overall' ? rankings : rankings.filter((r) => r.position === tab)
+    const sorted = [...base].sort((a, b) => {
+      const { key } = sort
+      if (key === 'name' || key === 'position') {
+        return a[key].localeCompare(b[key])
+      }
+      return a[key] - b[key]
+    })
+    if (sort.direction === 'desc') sorted.reverse()
+    return sorted
+  }, [rankings, tab, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  useEffect(() => setPage(1), [tab])
+  useEffect(() => setPage(1), [tab, sort])
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
 
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
+  useEffect(() => {
+    if (currentWeekData?.week !== undefined && highlightsWeek === null) setHighlightsWeek(currentWeekData.week)
+  }, [currentWeekData, highlightsWeek])
+
+  const highlightsWeekOptions = useMemo(
+    () => (currentWeekData ? Array.from({ length: currentWeekData.week }, (_, i) => i + 1) : []),
+    [currentWeekData],
+  )
+
   return (
     <div className="space-y-6">
       <Section
-        title="Player Rankings"
+        title="Trending"
+        icon={ArrowLeftRight}
+        action={
+          <Select value={highlightsWeek ?? ''} onChange={(e) => setHighlightsWeek(Number(e.target.value))}>
+            {highlightsWeekOptions.map((w) => (
+              <option key={w} value={w}>
+                {w === currentWeekData?.week ? `Week ${w} (current)` : `Week ${w}`}
+              </option>
+            ))}
+          </Select>
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <TransactionHighlightCard label="Most Added" highlight={highlights?.most_added ?? null} icon={ArrowUpCircle} iconColor="text-good" />
+          <TransactionHighlightCard label="Most Dropped" highlight={highlights?.most_dropped ?? null} icon={ArrowDownCircle} iconColor="text-bad" />
+        </div>
+      </Section>
+
+      <Section
+        title="Rankings"
         icon={Star}
         subtitle="Season-long fantasy points, deduplicated across every league"
       >
@@ -64,12 +127,50 @@ export function PlayersPage() {
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-ink-500 border-b border-line">
                   <th className="py-3 pl-4 pr-2 font-semibold w-10">#</th>
-                  <th className="py-3 pr-2 font-semibold">Player</th>
-                  <th className="py-3 pr-2 font-semibold hidden sm:table-cell">Pos</th>
+                  <SortableHeader
+                    label="Player"
+                    sortKey="name"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={handleSort}
+                    className="py-3 pr-2"
+                  />
+                  <SortableHeader
+                    label="Pos"
+                    sortKey="position"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={handleSort}
+                    className="py-3 pr-2 hidden sm:table-cell"
+                  />
                   <th className="py-3 pr-2 font-semibold hidden md:table-cell">Owned By</th>
-                  <th className="py-3 pr-2 font-semibold text-right">Total</th>
-                  <th className="py-3 pr-2 font-semibold text-right hidden sm:table-cell">GP</th>
-                  <th className="py-3 pr-4 font-semibold text-right">Avg</th>
+                  <SortableHeader
+                    label="Total"
+                    sortKey="total_points"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={handleSort}
+                    align="right"
+                    className="py-3 pr-2"
+                  />
+                  <SortableHeader
+                    label="GP"
+                    sortKey="games_played"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={handleSort}
+                    align="right"
+                    className="py-3 pr-2 hidden sm:table-cell"
+                  />
+                  <SortableHeader
+                    label="Avg"
+                    sortKey="avg_points"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={handleSort}
+                    align="right"
+                    className="py-3 pr-4"
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -151,6 +252,61 @@ export function PlayersPage() {
         <PlayerModal leagueId={selected.leagueId} playerId={selected.playerId} onClose={() => setSelected(null)} />
       ) : null}
     </div>
+  )
+}
+
+function TransactionHighlightCard({
+  label,
+  highlight,
+  icon: Icon,
+  iconColor,
+}: {
+  label: string
+  highlight: TransactionHighlight | null
+  icon: LucideIcon
+  iconColor: string
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-500 mb-3">
+        <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+        {label}
+      </div>
+      {highlight ? (
+        <>
+          <div className="flex items-center gap-3">
+            <img
+              src={headshotUrl(highlight.player.player_id)}
+              alt=""
+              className="w-11 h-9 rounded object-cover bg-white/5 shrink-0"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-ink-100 truncate">{highlight.player.name}</div>
+              <div className="text-xs text-ink-500">
+                {highlight.player.position} · {highlight.player.nfl_team}
+              </div>
+            </div>
+            <div className="text-2xl font-display font-bold text-ink-100 shrink-0">{highlight.count}×</div>
+          </div>
+          <div className="text-xs text-ink-500 mt-2.5">
+            By{' '}
+            {highlight.by.map((t, i) => (
+              <span key={`${t.league_id}-${t.team_id}-${i}`}>
+                <Link to={`/teams/${t.league_id}/${t.team_id}`} className="text-brand-400 hover:text-brand-300">
+                  {t.owner || t.team_name}
+                </Link>
+                {i < highlight.by.length - 1 ? ', ' : ''}
+              </span>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-ink-500">No transactions this week</p>
+      )}
+    </Card>
   )
 }
 

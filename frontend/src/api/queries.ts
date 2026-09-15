@@ -15,6 +15,8 @@ import type {
   StandingsRow,
   TeamDetail,
   TeamSummary,
+  TransactionEvent,
+  TransactionHighlights,
   WeeklyStats,
 } from './types'
 
@@ -156,5 +158,29 @@ export function usePlayerRankings() {
   return useQuery({
     queryKey: ['player-rankings'],
     queryFn: () => api.get<PlayerRanking[]>('/players/rankings'),
+  })
+}
+
+export function useTeamTransactions(leagueId: string | undefined, teamId: number | undefined) {
+  return useQuery({
+    queryKey: ['team-transactions', leagueId, teamId],
+    queryFn: () => api.get<TransactionEvent[]>(`/teams/${leagueId}/${teamId}/transactions`),
+    enabled: Boolean(leagueId) && teamId !== undefined,
+  })
+}
+
+export function useWeekTransactions(week: number | undefined, leagueId?: string) {
+  return useQuery({
+    queryKey: ['transactions', week, leagueId],
+    queryFn: () => api.get<TransactionEvent[]>(`/weeks/${week}/transactions${leagueId ? `?league_id=${leagueId}` : ''}`),
+    enabled: week !== undefined,
+  })
+}
+
+export function useTransactionHighlights(week: number | undefined) {
+  return useQuery({
+    queryKey: ['transaction-highlights', week],
+    queryFn: () => api.get<TransactionHighlights>(`/weeks/${week}/transaction-highlights`),
+    enabled: week !== undefined,
   })
 }

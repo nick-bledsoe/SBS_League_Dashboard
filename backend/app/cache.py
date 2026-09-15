@@ -15,3 +15,13 @@ nfl_logos_cache: TTLCache = TTLCache(maxsize=1, ttl=60)
 # every league x every week played so far, so it's cached separately from the underlying
 # per-week boxscore_cache to avoid redoing that work on every request.
 player_rankings_cache: TTLCache = TTLCache(maxsize=1, ttl=300)
+
+# Single entry ("directory",) -> {player_id: {name, position, nfl_team}} built from every
+# roster seen this season. A dropped player is a free agent by the time you'd look them up,
+# so this can't be resolved from any league's *current* roster — it has to be assembled from
+# roster snapshots as they were fetched over the season.
+player_directory_cache: TTLCache = TTLCache(maxsize=1, ttl=300)
+
+# Keyed by (league_id, week) -> filtered transaction list for that week. Same 300s TTL as
+# the other per-week ESPN data.
+transactions_cache: TTLCache = TTLCache(maxsize=64, ttl=300)

@@ -5,12 +5,14 @@ from app.core.constants import LEAGUE_ID_TO_NAME
 from app.core.errors import NotFoundError
 from app.db.session import get_db
 from app.schemas.teams import ScheduleGame, TeamDetail, TeamSummary
+from app.schemas.transactions import TransactionEvent
 from app.services import standings_service
 from app.services.espn_client import fetch_league_data, get_team_roster
 from app.services.playoff_service import calculate_playoff_standings, get_ordinal
 from app.services.schedule_service import get_team_schedule
 from app.services.season_service import get_current_season
 from app.services.standings_service import fetch_all_leagues, fetch_all_matchups, get_all_teams
+from app.services.transactions_service import get_team_transactions
 
 router = APIRouter(tags=["teams"])
 
@@ -53,3 +55,8 @@ def team_detail(league_id: str, team_id: int):
 @router.get("/teams/{league_id}/{team_id}/schedule", response_model=list[ScheduleGame])
 def team_schedule(league_id: str, team_id: int, db: Session = Depends(get_db)):
     return get_team_schedule(db, league_id, team_id, get_current_season())
+
+
+@router.get("/teams/{league_id}/{team_id}/transactions", response_model=list[TransactionEvent])
+def team_transactions(league_id: str, team_id: int):
+    return get_team_transactions(league_id, team_id)

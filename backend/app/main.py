@@ -5,7 +5,7 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.db.session import Base, engine
-from app.routers import matchups, meta, players, playoff_matchups, standings, stats, teams
+from app.routers import matchups, meta, players, playoff_matchups, standings, stats, teams, transactions
 
 configure_logging()
 settings = get_settings()
@@ -35,3 +35,4 @@ app.include_router(matchups.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
 app.include_router(playoff_matchups.router, prefix="/api")
 app.include_router(players.router, prefix="/api")
+app.include_router(transactions.router, prefix="/api")

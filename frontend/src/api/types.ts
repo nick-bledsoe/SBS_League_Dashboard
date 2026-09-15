@@ -252,3 +252,36 @@ export interface PlayerRanking {
   games_played: number
   avg_points: number
 }
+
+export interface TransactionPlayer {
+  player_id: string
+  name: string
+  position: string
+  nfl_team: string
+}
+
+export interface TransactionItem {
+  action: 'ADD' | 'DROP'
+  team: TeamRef
+  player: TransactionPlayer
+}
+
+export interface TransactionEvent {
+  id: string
+  type: string
+  week: number
+  date: number
+  items: TransactionItem[]
+}
+
+export interface TransactionHighlight {
+  player: TransactionPlayer
+  count: number
+  by: TeamRef[]
+}
+
+export interface TransactionHighlights {
+  week: number
+  most_added: TransactionHighlight | null
+  most_dropped: TransactionHighlight | null
+}

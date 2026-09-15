@@ -1,9 +1,19 @@
-import { BarChart3, Flame, Swords, Trophy } from 'lucide-react'
+import { Activity, BarChart3, Flame, Swords, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { useAllMatchups, useBoxscore, useCurrentWeek, usePlayoffMatchups, usePlayoffStandings, useSeasons, useStandings } from '../api/queries'
+import {
+  useAllMatchups,
+  useBoxscore,
+  useCurrentWeek,
+  usePlayoffMatchups,
+  usePlayoffStandings,
+  useSeasons,
+  useStandings,
+  useWeekTransactions,
+} from '../api/queries'
 import type { RegularMatchup } from '../api/types'
+import { ActivityFeed } from '../components/ActivityFeed'
 import { BoxscoreRoster } from '../components/BoxscoreRoster'
 import { MatchupCard } from '../components/MatchupCard'
 import { PlayoffBoxscores } from '../components/PlayoffBoxscores'
@@ -23,15 +33,21 @@ export function HomePage() {
 
   const [matchupType, setMatchupType] = useState<'Regular Season' | 'Playoffs'>('Regular Season')
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
+  const [activityWeek, setActivityWeek] = useState<number | null>(null)
 
   const currentWeek = currentWeekData?.week
   const currentSeason = seasonsData?.current_season
 
   const { data: playoffMatchups } = usePlayoffMatchups(currentSeason)
+  const { data: weekActivity } = useWeekTransactions(activityWeek ?? undefined)
 
   useEffect(() => {
     if (currentWeek !== undefined && selectedWeek === null) setSelectedWeek(currentWeek)
   }, [currentWeek, selectedWeek])
+
+  useEffect(() => {
+    if (currentWeek !== undefined && activityWeek === null) setActivityWeek(currentWeek)
+  }, [currentWeek, activityWeek])
 
   const leagueGroups = useMemo(() => {
     if (!standings) return []
@@ -279,6 +295,23 @@ export function HomePage() {
             </div>
           </div>
         )}
+      </Section>
+
+      <Section
+        title="Recent Activity"
+        icon={Activity}
+        subtitle="Waiver, free agent, and trade moves"
+        action={
+          <Select value={activityWeek ?? ''} onChange={(e) => setActivityWeek(Number(e.target.value))}>
+            {availableWeeks.map((w) => (
+              <option key={w} value={w}>
+                {w === currentWeek ? `Week ${w} (current)` : `Week ${w}`}
+              </option>
+            ))}
+          </Select>
+        }
+      >
+        <ActivityFeed events={weekActivity ?? []} />
       </Section>
     </div>
   )

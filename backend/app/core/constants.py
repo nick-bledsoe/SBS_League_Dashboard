@@ -21,6 +21,15 @@ BOXSCORE_API_URL = (
     "&platformVersion=f23636631f3d5609b41daa409faa6f587135a0fb"
 )
 
+# The `transactions` field only shows up when mTransactions2 is combined with these other
+# views (mTransactions2 alone silently omits it) — found by inspecting what ESPN's own
+# recent-activity page requests, not documented anywhere.
+TRANSACTIONS_API_URL = (
+    "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2026/segments/0/"
+    "leagues/{leagueId}?scoringPeriodId={week}&view=mDraftDetail&view=mStatus&view=mSettings"
+    "&view=mTeam&view=mTransactions2&view=modular&view=mNav"
+)
+
 # NFL Team ID mapping
 NFL_TEAMS = {
     2: "BUF", 15: "MIA", 17: "NE", 20: "NYJ",

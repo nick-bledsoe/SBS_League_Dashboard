@@ -1,9 +1,10 @@
 import { ChevronDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { useBoxscore, useTeam, useTeamSchedule, useTeams } from '../api/queries'
+import { useBoxscore, useTeam, useTeamSchedule, useTeams, useTeamTransactions } from '../api/queries'
 import type { ScheduleGame, TeamRef } from '../api/types'
+import { ActivityFeed } from '../components/ActivityFeed'
 import { BoxscoreRoster } from '../components/BoxscoreRoster'
 import { PlayerModal } from '../components/PlayerModal'
 import { RosterList } from '../components/RosterList'
@@ -41,6 +42,18 @@ export function TeamsPage() {
 
   const { data: detail } = useTeam(selected?.leagueId, selected?.teamId)
   const { data: schedule } = useTeamSchedule(selected?.leagueId, selected?.teamId)
+  const { data: transactions } = useTeamTransactions(selected?.leagueId, selected?.teamId)
+
+  const transactionsByWeek = useMemo(() => {
+    if (!transactions) return []
+    const byWeek = new Map<number, typeof transactions>()
+    for (const t of transactions) {
+      const list = byWeek.get(t.week) ?? []
+      list.push(t)
+      byWeek.set(t.week, list)
+    }
+    return Array.from(byWeek.entries()).sort((a, b) => b[0] - a[0])
+  }, [transactions])
 
   if (!teams) return <LoadingState label="Loading teams…" />
 
@@ -113,6 +126,22 @@ export function TeamsPage() {
               </div>
             ) : (
               <EmptyState label="No schedule available for this team" />
+            )}
+          </div>
+
+          <div>
+            <h2 className="font-display text-xl font-bold mb-4">Transactions</h2>
+            {transactionsByWeek.length === 0 ? (
+              <EmptyState label="No roster moves yet this season" />
+            ) : (
+              <div className="space-y-5">
+                {transactionsByWeek.map(([week, events]) => (
+                  <div key={week}>
+                    <h3 className="text-brand-400 font-semibold text-sm uppercase tracking-wide mb-2">Week {week}</h3>
+                    <ActivityFeed events={events} />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </>
