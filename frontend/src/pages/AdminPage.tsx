@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import {
   useCreatePlayoffMatchup,
@@ -201,7 +202,9 @@ export function AdminPage() {
                           )}
                           <div>
                             <div className={side.winning ? 'font-bold text-ink-100' : 'text-ink-200'}>
-                              {side.team.team_name}
+                              <Link to={`/teams/${side.team.league_id}/${side.team.team_id}`} className="hover:text-brand-400">
+                                {side.team.team_name}
+                              </Link>
                               <span className="ml-2 text-xs text-ink-500 font-normal">{side.team.owner}</span>
                             </div>
                             <div className="text-xs text-ink-500">

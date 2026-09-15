@@ -23,7 +23,9 @@ class LeagueLeader(BaseModel):
 class CloseGame(BaseModel):
     league_name: str
     team_a: str
+    team_a_ref: TeamRef
     team_b: str
+    team_b_ref: TeamRef
     score_a: float
     score_b: float
     margin: float
@@ -32,8 +34,10 @@ class CloseGame(BaseModel):
 class Blowout(BaseModel):
     league_name: str
     winner: str
+    winner_ref: TeamRef
     winner_score: float
     loser: str
+    loser_ref: TeamRef
     loser_score: float
     margin: float
 

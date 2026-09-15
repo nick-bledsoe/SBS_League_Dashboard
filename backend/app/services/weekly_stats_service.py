@@ -82,11 +82,11 @@ def calculate_weekly_stats(week: int, matchup_pairs: list[dict]) -> dict:
         t1, t2 = mp["team1"], mp["team2"]
         all_team_scores.append(
             {"team": t1["team"], "league": t1["team"]["league_name"], "score": t1["score"], "logo": t1.get("logo", ""),
-             "opponent": t2["team"]["team_name"], "opponent_score": t2["score"]}
+             "opponent": t2["team"], "opponent_logo": t2.get("logo", ""), "opponent_score": t2["score"]}
         )
         all_team_scores.append(
             {"team": t2["team"], "league": t2["team"]["league_name"], "score": t2["score"], "logo": t2.get("logo", ""),
-             "opponent": t1["team"]["team_name"], "opponent_score": t1["score"]}
+             "opponent": t1["team"], "opponent_logo": t1.get("logo", ""), "opponent_score": t1["score"]}
         )
 
         for side in (t1, t2):
@@ -143,7 +143,7 @@ def calculate_weekly_stats(week: int, matchup_pairs: list[dict]) -> dict:
         margin = abs(t["score"] - t["opponent_score"])
         if margin > 3:
             continue
-        pair_key = tuple(sorted([t["team"]["team_name"], t["opponent"]]))
+        pair_key = tuple(sorted([t["team"]["team_name"], t["opponent"]["team_name"]]))
         if pair_key in seen_close:
             continue
         seen_close.add(pair_key)
@@ -151,7 +151,9 @@ def calculate_weekly_stats(week: int, matchup_pairs: list[dict]) -> dict:
             {
                 "league_name": t["league"],
                 "team_a": t["team"]["team_name"],
-                "team_b": t["opponent"],
+                "team_a_ref": t["team"],
+                "team_b": t["opponent"]["team_name"],
+                "team_b_ref": t["opponent"],
                 "score_a": t["score"],
                 "score_b": t["opponent_score"],
                 "margin": round(margin, 1),
@@ -164,23 +166,25 @@ def calculate_weekly_stats(week: int, matchup_pairs: list[dict]) -> dict:
     for t in all_team_scores:
         if t["score"] <= 0:
             continue
-        pair_key = tuple(sorted([t["team"]["team_name"], t["opponent"]]))
+        pair_key = tuple(sorted([t["team"]["team_name"], t["opponent"]["team_name"]]))
         if pair_key in seen_blowout:
             continue
         seen_blowout.add(pair_key)
         margin = abs(t["score"] - t["opponent_score"])
         if t["score"] > t["opponent_score"]:
-            winner, winner_score = t["team"]["team_name"], t["score"]
-            loser, loser_score = t["opponent"], t["opponent_score"]
+            winner, winner_ref, winner_score = t["team"]["team_name"], t["team"], t["score"]
+            loser, loser_ref, loser_score = t["opponent"]["team_name"], t["opponent"], t["opponent_score"]
         else:
-            winner, winner_score = t["opponent"], t["opponent_score"]
-            loser, loser_score = t["team"]["team_name"], t["score"]
+            winner, winner_ref, winner_score = t["opponent"]["team_name"], t["opponent"], t["opponent_score"]
+            loser, loser_ref, loser_score = t["team"]["team_name"], t["team"], t["score"]
         blowout_candidates.append(
             {
                 "league_name": t["league"],
                 "winner": winner,
+                "winner_ref": winner_ref,
                 "winner_score": winner_score,
                 "loser": loser,
+                "loser_ref": loser_ref,
                 "loser_score": loser_score,
                 "margin": round(margin, 1),
             }

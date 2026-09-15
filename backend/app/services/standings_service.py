@@ -1,9 +1,9 @@
-from app.core.constants import LEAGUES, TEAM_OWNERS
+from app.core.constants import LEAGUES, TEAM_OWNERS_BY_ID
 from app.services.espn_client import fetch_league_data
 
 
-def get_owner(team_name: str) -> str:
-    return TEAM_OWNERS.get(team_name, "")
+def get_owner(league_name: str, team_id: int) -> str:
+    return TEAM_OWNERS_BY_ID.get(league_name, {}).get(team_id, "")
 
 
 def team_ref(league_id: str, league_name: str, team_id: int, team_name: str) -> dict:
@@ -12,7 +12,7 @@ def team_ref(league_id: str, league_name: str, team_id: int, team_name: str) -> 
         "league_name": league_name,
         "team_id": team_id,
         "team_name": team_name,
-        "owner": get_owner(team_name),
+        "owner": get_owner(league_name, team_id),
     }
 
 

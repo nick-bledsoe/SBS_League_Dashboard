@@ -13,6 +13,8 @@ export interface MatchupCardSide {
   score: number | string | null
   winning: boolean
   subtitle?: string
+  leagueId?: string
+  teamId?: number
 }
 
 interface MatchupCardProps {
@@ -26,7 +28,15 @@ interface MatchupCardProps {
 function ScoreRow({ side }: { side: MatchupCardSide }) {
   return (
     <div className={`flex items-center justify-between gap-3 px-4 py-3 ${side.winning ? 'bg-brand-500/[0.06]' : ''}`}>
-      <TeamBadge name={side.name} owner={side.owner} logo={side.logo} bold={side.winning} subtitle={side.subtitle} />
+      <TeamBadge
+        name={side.name}
+        owner={side.owner}
+        logo={side.logo}
+        bold={side.winning}
+        subtitle={side.subtitle}
+        leagueId={side.leagueId}
+        teamId={side.teamId}
+      />
       <div className={`text-2xl font-display font-bold tabular-nums shrink-0 ${side.winning ? 'text-good' : 'text-ink-500'}`}>
         {formatScore(side.score)}
       </div>

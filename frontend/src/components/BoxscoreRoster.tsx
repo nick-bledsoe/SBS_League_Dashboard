@@ -1,4 +1,5 @@
 import type { BoxscorePlayer } from '../api/types'
+import { lastName } from '../lib/format'
 import { PlayerRow } from './PlayerRow'
 
 export function BoxscoreRoster({ roster, limit }: { roster: BoxscorePlayer[]; limit?: number }) {
@@ -12,7 +13,7 @@ export function BoxscoreRoster({ roster, limit }: { roster: BoxscorePlayer[]; li
         <PlayerRow
           key={p.player_id || p.name}
           playerId={p.player_id}
-          name={p.name}
+          name={limit ? lastName(p.name) : p.name}
           subtitle={limit ? undefined : `${p.nfl_team} - ${p.position}`}
           trailing={p.points.toString()}
           points={p.points}

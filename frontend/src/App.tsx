@@ -1,16 +1,18 @@
-import { LayoutDashboard, Shield, Trophy, Users } from 'lucide-react'
+import { LayoutDashboard, Shield, Star, Trophy, Users } from 'lucide-react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 
 import { useCurrentWeek, useSeasons } from './api/queries'
 import { BottomNav } from './components/BottomNav'
 import { AdminPage } from './pages/AdminPage'
 import { HomePage } from './pages/HomePage'
+import { PlayersPage } from './pages/PlayersPage'
 import { ScoreboardPage } from './pages/ScoreboardPage'
 import { TeamsPage } from './pages/TeamsPage'
 
 const navItems = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/teams', label: 'Teams', icon: Users, end: false },
+  { to: '/players', label: 'Players', icon: Star, end: false },
   { to: '/scoreboard', label: 'Scoreboard', icon: Trophy, end: false },
   { to: '/admin', label: 'Admin', icon: Shield, end: false },
 ]
@@ -78,6 +80,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/teams/:leagueId/:teamId" element={<TeamsPage />} />
+          <Route path="/players" element={<PlayersPage />} />
           <Route path="/scoreboard" element={<ScoreboardPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>

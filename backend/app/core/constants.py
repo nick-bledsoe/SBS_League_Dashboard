@@ -33,26 +33,35 @@ NFL_TEAMS = {
     22: "ARI", 14: "LAR", 25: "SF", 26: "SEA",
 }
 
-# Team Name to Owner Name mapping
-TEAM_OWNERS = {
-    "Ray Finkle": "Jason",
-    "SMAUX": "Po",
-    "Booters": "Anthony",
-    "The Slye Dawgs": "Jackson",
-    "Kicking Me Softly": "Conor",
-    "Coffin Corner": "CJ",
-    "Team C": "John",
-    "Blair Walsh Project": "Nick",
-    "Help Me Step Burrow": "Paul",
-    "Michael's Magnificent Team": "Mikey",
-    "mark's Magnificent Team": "Mark",
-    "Noah's Nifty Team": "Noah",
-    "Al's Astounding Team": "Al",
-    "Kyle's Top-Notch Team": "Kyle",
-    "Burnin Rubbers": "Matt",
-    "Turf Toe": "Carl",
-    "Jace": "Jace",
-    "Lets Get Reicharded": "Brian",
+# Team (league, ESPN team_id) -> Owner Name. Keyed by team_id (not name) because
+# managers keep renaming their teams mid-season — team_id is the stable ESPN
+# identifier that survives a rename, unlike team_name which broke this mapping
+# three separate times before switching to this.
+TEAM_OWNERS_BY_ID: dict[str, dict[int, str]] = {
+    "Doinks": {
+        1: "Carl",
+        2: "Jason",
+        3: "Matt",
+        4: "Mark",
+        5: "John",
+        6: "Paul",
+    },
+    "Shanks": {
+        1: "Anthony",
+        2: "Al",
+        3: "Nick",
+        4: "CJ",
+        5: "Noah",
+        6: "Conor",
+    },
+    "Clunks": {
+        1: "Brian",
+        2: "Po",
+        3: "Jace",
+        4: "Kyle",
+        5: "Mikey",
+        6: "Jackson",
+    },
 }
 
 MATCHUP_TYPES = [

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 interface TeamBadgeProps {
   name: string
   owner?: string
@@ -5,10 +7,13 @@ interface TeamBadgeProps {
   bold?: boolean
   size?: number
   subtitle?: string
+  /** When both are given, the badge links to that team's page (/teams/:leagueId/:teamId). */
+  leagueId?: string
+  teamId?: number
 }
 
-export function TeamBadge({ name, owner, logo, bold, size = 32, subtitle }: TeamBadgeProps) {
-  return (
+export function TeamBadge({ name, owner, logo, bold, size = 32, subtitle, leagueId, teamId }: TeamBadgeProps) {
+  const content = (
     <div className="flex items-center gap-3 min-w-0">
       {logo ? (
         <img
@@ -35,4 +40,18 @@ export function TeamBadge({ name, owner, logo, bold, size = 32, subtitle }: Team
       </div>
     </div>
   )
+
+  if (leagueId && teamId !== undefined) {
+    return (
+      <Link
+        to={`/teams/${leagueId}/${teamId}`}
+        className="hover:opacity-80 transition-opacity min-w-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return content
 }

@@ -165,7 +165,9 @@ export interface LeagueLeader {
 export interface CloseGame {
   league_name: string
   team_a: string
+  team_a_ref: TeamRef
   team_b: string
+  team_b_ref: TeamRef
   score_a: number
   score_b: number
   margin: number
@@ -174,8 +176,10 @@ export interface CloseGame {
 export interface Blowout {
   league_name: string
   winner: string
+  winner_ref: TeamRef
   winner_score: number
   loser: string
+  loser_ref: TeamRef
   loser_score: number
   margin: number
 }
@@ -196,4 +200,53 @@ export interface WeeklyStats {
   close_games: CloseGame[]
   blowouts: Blowout[]
   summary: WeeklySummary
+}
+
+export interface PlayerNewsItem {
+  id: number | null
+  headline: string
+  description: string
+  story: string
+  source: string
+  published: string
+}
+
+export interface WeeklyPoints {
+  week: number
+  points: number
+}
+
+export interface StatSeasonRow {
+  year: number | null
+  team: string
+  values: string[]
+}
+
+export interface StatCategory {
+  name: string
+  display_name: string
+  labels: string[]
+  seasons: StatSeasonRow[]
+}
+
+export interface PlayerDetail {
+  player_id: string
+  name: string
+  position: string
+  nfl_team: string
+  nfl_logo: string
+  weekly_points: WeeklyPoints[]
+  news: PlayerNewsItem[]
+  stats: StatCategory[]
+}
+
+export interface PlayerRanking {
+  player_id: string
+  name: string
+  position: string
+  nfl_team: string
+  league_id: string
+  total_points: number
+  games_played: number
+  avg_points: number
 }

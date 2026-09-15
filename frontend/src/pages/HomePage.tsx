@@ -1,5 +1,6 @@
 import { BarChart3, Flame, Swords, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { useAllMatchups, useBoxscore, useCurrentWeek, usePlayoffMatchups, usePlayoffStandings, useSeasons, useStandings } from '../api/queries'
 import type { RegularMatchup } from '../api/types'
@@ -49,11 +50,44 @@ export function HomePage() {
     return weeks
       .map((week) => {
         const weekMatchups = allMatchups.filter((m) => m.week === week)
-        const performances: { week: number; team: string; owner: string; league: string; score: number; opponent: string }[] = []
+        const performances: {
+          week: number
+          team: string
+          owner: string
+          league: string
+          score: number
+          opponent: string
+          leagueId: string
+          teamId: number
+          opponentLeagueId: string
+          opponentTeamId: number
+        }[] = []
         for (const m of weekMatchups) {
           if (m.home_score > 0 || m.away_score > 0) {
-            performances.push({ week, team: m.home.team_name, owner: m.home.owner, league: m.league_name, score: m.home_score, opponent: m.away.team_name })
-            performances.push({ week, team: m.away.team_name, owner: m.away.owner, league: m.league_name, score: m.away_score, opponent: m.home.team_name })
+            performances.push({
+              week,
+              team: m.home.team_name,
+              owner: m.home.owner,
+              league: m.league_name,
+              score: m.home_score,
+              opponent: m.away.team_name,
+              leagueId: m.home.league_id,
+              teamId: m.home.team_id,
+              opponentLeagueId: m.away.league_id,
+              opponentTeamId: m.away.team_id,
+            })
+            performances.push({
+              week,
+              team: m.away.team_name,
+              owner: m.away.owner,
+              league: m.league_name,
+              score: m.away_score,
+              opponent: m.home.team_name,
+              leagueId: m.away.league_id,
+              teamId: m.away.team_id,
+              opponentLeagueId: m.home.league_id,
+              opponentTeamId: m.home.team_id,
+            })
           }
         }
         if (performances.length === 0) return null
@@ -138,12 +172,18 @@ export function HomePage() {
                     <tr key={h.week} className="border-b border-line/60 last:border-0 hover:bg-white/[0.02]">
                       <td className="py-2 pl-4 pr-2 tabular-nums">{h.week}</td>
                       <td className="py-2 pr-2 font-medium text-ink-100">
-                        {h.team}
+                        <Link to={`/teams/${h.leagueId}/${h.teamId}`} className="hover:text-brand-400">
+                          {h.team}
+                        </Link>
                         {h.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({h.owner})</span> : null}
                       </td>
                       <td className="py-2 pr-2 text-ink-400 hidden sm:table-cell">{h.league}</td>
                       <td className="py-2 pr-2 text-right font-semibold tabular-nums text-good">{h.score.toFixed(1)}</td>
-                      <td className="py-2 pr-4 text-ink-400">{h.opponent}</td>
+                      <td className="py-2 pr-4 text-ink-400">
+                        <Link to={`/teams/${h.opponentLeagueId}/${h.opponentTeamId}`} className="hover:text-brand-400">
+                          {h.opponent}
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -210,6 +250,8 @@ export function HomePage() {
                       score: m.home.score,
                       winning: m.home.winning,
                       subtitle: `(${m.home.team.league_name}, ${m.home.wins}-${m.home.losses}, seed ${m.home.seed})`,
+                      leagueId: m.home.team.league_id,
+                      teamId: m.home.team.team_id,
                     }}
                     away={{
                       name: m.away.team.team_name,
@@ -218,6 +260,8 @@ export function HomePage() {
                       score: m.away.score,
                       winning: m.away.winning,
                       subtitle: `(${m.away.team.league_name}, ${m.away.wins}-${m.away.losses}, seed ${m.away.seed})`,
+                      leagueId: m.away.team.league_id,
+                      teamId: m.away.team.team_id,
                     }}
                   >
                     <PlayoffBoxscores
@@ -279,8 +323,24 @@ function LiveMatchupColumn({
           return (
             <MatchupCard
               key={`${m.home.team_id}-${m.away.team_id}`}
-              home={{ name: m.home.team_name, owner: m.home.owner, logo: m.home_logo, score: m.home_score, winning: m.home_score > m.away_score }}
-              away={{ name: m.away.team_name, owner: m.away.owner, logo: m.away_logo, score: m.away_score, winning: m.away_score > m.home_score }}
+              home={{
+                name: m.home.team_name,
+                owner: m.home.owner,
+                logo: m.home_logo,
+                score: m.home_score,
+                winning: m.home_score > m.away_score,
+                leagueId: m.home.league_id,
+                teamId: m.home.team_id,
+              }}
+              away={{
+                name: m.away.team_name,
+                owner: m.away.owner,
+                logo: m.away_logo,
+                score: m.away_score,
+                winning: m.away_score > m.home_score,
+                leagueId: m.away.league_id,
+                teamId: m.away.team_id,
+              }}
             >
               {box ? (
                 <div className="grid grid-cols-2 gap-4">

@@ -4,6 +4,8 @@ import { api } from './client'
 import type {
   BoxscoreMatchup,
   LeagueInfo,
+  PlayerDetail,
+  PlayerRanking,
   PlayoffMatchupCreate,
   PlayoffMatchupRead,
   PlayoffMatchupUpdate,
@@ -139,5 +141,20 @@ export function useDeletePlayoffMatchup() {
   return useMutation({
     mutationFn: (id: number) => api.delete<void>(`/playoff-matchups/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['playoff-matchups'] }),
+  })
+}
+
+export function usePlayerDetail(leagueId: string | undefined, playerId: string | undefined) {
+  return useQuery({
+    queryKey: ['player-detail', leagueId, playerId],
+    queryFn: () => api.get<PlayerDetail>(`/players/${playerId}?league_id=${leagueId}`),
+    enabled: Boolean(leagueId) && Boolean(playerId),
+  })
+}
+
+export function usePlayerRankings() {
+  return useQuery({
+    queryKey: ['player-rankings'],
+    queryFn: () => api.get<PlayerRanking[]>('/players/rankings'),
   })
 }

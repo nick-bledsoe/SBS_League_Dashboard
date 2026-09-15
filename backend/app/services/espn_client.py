@@ -123,6 +123,46 @@ def get_team_roster(data: dict, team_id: int) -> list[dict]:
     return []
 
 
+DEFAULT_POSITION_NAMES = {1: "QB", 5: "K", 7: "P"}
+
+
+def get_player_bio(league_id: str, player_id: int) -> dict | None:
+    """Find a player anywhere in a league's rosters and return bio info plus their
+    actual (not projected) weekly points for every scoring period played so far."""
+    league_data = fetch_league_data(league_id)
+    if not league_data:
+        return None
+
+    for team in league_data.get("teams", []):
+        for entry in team.get("roster", {}).get("entries", []):
+            player_info = entry.get("playerPoolEntry", {}).get("player", {})
+            if player_info.get("id") != player_id:
+                continue
+
+            pro_team_id = player_info.get("proTeamId")
+            nfl_team = NFL_TEAMS.get(pro_team_id, "N/A") if pro_team_id else "N/A"
+
+            weekly_points = [
+                {"week": s["scoringPeriodId"], "points": round(s.get("appliedTotal", 0), 2)}
+                for s in player_info.get("stats", [])
+                # statSourceId 0 = actual (not projected); statSplitTypeId 1 = single week
+                # (not a season/last-N aggregate); scoringPeriodId 0 means "season total".
+                if s.get("statSourceId") == 0 and s.get("statSplitTypeId") == 1 and s.get("scoringPeriodId", 0) > 0
+            ]
+            weekly_points.sort(key=lambda w: w["week"])
+
+            return {
+                "player_id": str(player_id),
+                "name": player_info.get("fullName", "Unknown"),
+                "position": DEFAULT_POSITION_NAMES.get(player_info.get("defaultPositionId"), "UNKNOWN"),
+                "nfl_team": nfl_team,
+                "nfl_logo": get_nfl_logo(nfl_team) if nfl_team != "N/A" else "",
+                "weekly_points": weekly_points,
+            }
+
+    return None
+
+
 def parse_roster(roster_data: dict) -> list[dict]:
     """Parse roster entries into clean player data with points for a boxscore."""
     players = []
@@ -179,7 +219,11 @@ def get_matchup_roster_details(league_id: str, week: int) -> list[dict]:
     teams = data.get("teams", [])
     team_map = {team.get("id"): team.get("name", "Unknown") for team in teams}
     logo_map = {team.get("id"): team.get("logo", "") for team in teams}
-    current_week = data.get("scoringPeriodId", 1)
+    # This response's own `scoringPeriodId` just echoes back the `week` query param we
+    # sent, so it can't tell us whether `week` is actually in progress — ask the league's
+    # own (unscoped) endpoint for that instead.
+    league_data = fetch_league_data(league_id)
+    current_week = (league_data or {}).get("scoringPeriodId", 1)
     # ESPN only finalizes `totalPoints` once a week completes; during an in-progress
     # week it stays 0 and the live score lives in `totalPointsLive` instead.
     points_field = "totalPointsLive" if week == current_week else "totalPoints"

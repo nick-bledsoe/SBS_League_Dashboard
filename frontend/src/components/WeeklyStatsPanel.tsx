@@ -1,4 +1,5 @@
 import { Flame, Swords, TrendingDown, Zap } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import type { WeeklyStats } from '../api/types'
 import { headshotUrl } from '../lib/format'
@@ -44,7 +45,9 @@ export function WeeklyStatsPanel({ stats }: { stats: WeeklyStats }) {
             <Card key={l.league_name} className="p-4 text-center">
               <div className="text-brand-400 font-semibold text-sm mb-2">{l.league_name}</div>
               {l.logo ? <img src={l.logo} alt="" className="w-14 h-14 rounded-full mx-auto mb-2 ring-1 ring-white/10" /> : null}
-              <div className="font-semibold text-ink-100">{l.team.team_name}</div>
+              <Link to={`/teams/${l.team.league_id}/${l.team.team_id}`} className="font-semibold text-ink-100 hover:text-brand-400">
+                {l.team.team_name}
+              </Link>
               <div className="text-xs text-ink-500 mb-1">{l.team.owner}</div>
               <div className="text-2xl font-display font-bold text-good tabular-nums">{l.score.toFixed(1)}</div>
             </Card>
@@ -61,7 +64,13 @@ export function WeeklyStatsPanel({ stats }: { stats: WeeklyStats }) {
               <Card key={i} className="p-3 text-center">
                 <div className="text-xs font-semibold text-ink-400 mb-1">{g.league_name}</div>
                 <div className="text-sm text-ink-200 mb-1">
-                  {g.team_a} vs {g.team_b}
+                  <Link to={`/teams/${g.team_a_ref.league_id}/${g.team_a_ref.team_id}`} className="hover:text-brand-400">
+                    {g.team_a}
+                  </Link>{' '}
+                  vs{' '}
+                  <Link to={`/teams/${g.team_b_ref.league_id}/${g.team_b_ref.team_id}`} className="hover:text-brand-400">
+                    {g.team_b}
+                  </Link>
                 </div>
                 <div className="text-xl font-display font-bold text-bad my-1 tabular-nums">
                   {g.score_a.toFixed(1)} - {g.score_b.toFixed(1)}
@@ -81,11 +90,18 @@ export function WeeklyStatsPanel({ stats }: { stats: WeeklyStats }) {
             {stats.blowouts.map((b, i) => (
               <Card key={i} className="p-3 text-center">
                 <div className="text-xs font-semibold text-ink-400 mb-1">{b.league_name}</div>
-                <div className="text-sm text-good font-semibold">{b.winner}</div>
+                <Link
+                  to={`/teams/${b.winner_ref.league_id}/${b.winner_ref.team_id}`}
+                  className="block text-sm text-good font-semibold hover:opacity-80"
+                >
+                  {b.winner}
+                </Link>
                 <div className="text-xl font-display font-bold text-ink-100 my-1 tabular-nums">
                   {b.winner_score.toFixed(1)} - {b.loser_score.toFixed(1)}
                 </div>
-                <div className="text-sm text-bad">{b.loser}</div>
+                <Link to={`/teams/${b.loser_ref.league_id}/${b.loser_ref.team_id}`} className="block text-sm text-bad hover:opacity-80">
+                  {b.loser}
+                </Link>
                 <div className="text-xs text-ink-500 mt-1">Margin: {b.margin.toFixed(1)} pts</div>
               </Card>
             ))}

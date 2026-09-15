@@ -2,7 +2,12 @@ import type { RosterPlayer } from '../api/types'
 import { headshotUrl } from '../lib/format'
 import { EmptyState } from './ui/States'
 
-export function RosterList({ players }: { players: RosterPlayer[] }) {
+interface RosterListProps {
+  players: RosterPlayer[]
+  onSelectPlayer?: (playerId: string) => void
+}
+
+export function RosterList({ players, onSelectPlayer }: RosterListProps) {
   if (players.length === 0) {
     return <EmptyState label="No players" />
   }
@@ -10,9 +15,12 @@ export function RosterList({ players }: { players: RosterPlayer[] }) {
   return (
     <div className="space-y-1.5">
       {players.map((p) => (
-        <div
+        <button
           key={p.player_id || p.name}
-          className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-surface-raised border border-line"
+          type="button"
+          onClick={() => p.player_id && onSelectPlayer?.(p.player_id)}
+          disabled={!p.player_id}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-surface-raised border border-line text-left transition-colors hover:border-line-strong hover:bg-white/[0.03] disabled:cursor-default disabled:hover:border-line disabled:hover:bg-surface-raised"
         >
           <div className="flex items-center gap-3 min-w-0">
             {p.player_id ? (
@@ -42,7 +50,7 @@ export function RosterList({ players }: { players: RosterPlayer[] }) {
               }}
             />
           ) : null}
-        </div>
+        </button>
       ))}
     </div>
   )

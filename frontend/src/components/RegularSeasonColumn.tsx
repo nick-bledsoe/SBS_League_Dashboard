@@ -34,6 +34,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week, limit }: Regul
               logo: m.home.logo,
               score: m.home.total_points,
               winning: m.home.total_points > m.away.total_points,
+              leagueId: m.home.team.league_id,
+              teamId: m.home.team.team_id,
             }}
             away={{
               name: m.away.team.team_name,
@@ -41,6 +43,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week, limit }: Regul
               logo: m.away.logo,
               score: m.away.total_points,
               winning: m.away.total_points > m.home.total_points,
+              leagueId: m.away.team.league_id,
+              teamId: m.away.team.team_id,
             }}
           >
             <div className="grid grid-cols-2 gap-4">

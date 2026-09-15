@@ -69,6 +69,8 @@ export function ScoreboardPage() {
                   score: m.home.score,
                   winning: m.home.winning,
                   subtitle: `(${m.home.team.league_name}, ${m.home.wins}-${m.home.losses})`,
+                  leagueId: m.home.team.league_id,
+                  teamId: m.home.team.team_id,
                 }}
                 away={{
                   name: m.away.team.team_name,
@@ -77,6 +79,8 @@ export function ScoreboardPage() {
                   score: m.away.score,
                   winning: m.away.winning,
                   subtitle: `(${m.away.team.league_name}, ${m.away.wins}-${m.away.losses})`,
+                  leagueId: m.away.team.league_id,
+                  teamId: m.away.team.team_id,
                 }}
               >
                 <PlayoffBoxscores

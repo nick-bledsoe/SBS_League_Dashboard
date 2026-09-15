@@ -1,9 +1,11 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { useBoxscore, useTeam, useTeamSchedule, useTeams } from '../api/queries'
-import type { ScheduleGame } from '../api/types'
+import type { ScheduleGame, TeamRef } from '../api/types'
 import { BoxscoreRoster } from '../components/BoxscoreRoster'
+import { PlayerModal } from '../components/PlayerModal'
 import { RosterList } from '../components/RosterList'
 import { TeamBadge } from '../components/TeamBadge'
 import { Card } from '../components/ui/Section'
@@ -12,13 +14,30 @@ import { EmptyState, LoadingState } from '../components/ui/States'
 
 export function TeamsPage() {
   const { data: teams } = useTeams()
-  const [selected, setSelected] = useState<{ leagueId: string; teamId: number } | null>(null)
+  const { leagueId: urlLeagueId, teamId: urlTeamId } = useParams()
+  const navigate = useNavigate()
+  const [selected, setSelected] = useState<{ leagueId: string; teamId: number } | null>(
+    urlLeagueId && urlTeamId ? { leagueId: urlLeagueId, teamId: Number(urlTeamId) } : null,
+  )
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
 
+  // The URL is the source of truth — a team link clicked anywhere in the app lands
+  // here and this picks it up, even if TeamsPage is already mounted on another team.
   useEffect(() => {
-    if (!selected && teams && teams.length > 0) {
-      setSelected({ leagueId: teams[0].team.league_id, teamId: teams[0].team.team_id })
+    if (urlLeagueId && urlTeamId) {
+      setSelected({ leagueId: urlLeagueId, teamId: Number(urlTeamId) })
     }
-  }, [teams, selected])
+  }, [urlLeagueId, urlTeamId])
+
+  // Bare /teams with no team specified yet: redirect to the first team's own URL.
+  useEffect(() => {
+    if (!urlLeagueId && !selected && teams && teams.length > 0) {
+      const first = teams[0].team
+      navigate(`/teams/${first.league_id}/${first.team_id}`, { replace: true })
+    }
+  }, [teams, selected, urlLeagueId, navigate])
+
+  const selectTeam = (leagueId: string, teamId: number) => navigate(`/teams/${leagueId}/${teamId}`)
 
   const { data: detail } = useTeam(selected?.leagueId, selected?.teamId)
   const { data: schedule } = useTeamSchedule(selected?.leagueId, selected?.teamId)
@@ -36,7 +55,7 @@ export function TeamsPage() {
         value={selected ? `${selected.leagueId}:${selected.teamId}` : ''}
         onChange={(e) => {
           const [leagueId, teamId] = e.target.value.split(':')
-          setSelected({ leagueId, teamId: Number(teamId) })
+          selectTeam(leagueId, Number(teamId))
         }}
         className="w-full max-w-md"
       >
@@ -65,15 +84,15 @@ export function TeamsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div>
                 <h3 className="text-brand-400 font-semibold text-sm uppercase tracking-wide mb-2">Quarterback</h3>
-                <RosterList players={qbs} />
+                <RosterList players={qbs} onSelectPlayer={setSelectedPlayerId} />
               </div>
               <div>
                 <h3 className="text-brand-400 font-semibold text-sm uppercase tracking-wide mb-2">Kickers</h3>
-                <RosterList players={kickers} />
+                <RosterList players={kickers} onSelectPlayer={setSelectedPlayerId} />
               </div>
               <div>
                 <h3 className="text-brand-400 font-semibold text-sm uppercase tracking-wide mb-2">Punters</h3>
-                <RosterList players={punters} />
+                <RosterList players={punters} onSelectPlayer={setSelectedPlayerId} />
               </div>
             </div>
           </div>
@@ -100,6 +119,14 @@ export function TeamsPage() {
       ) : (
         <LoadingState label="Loading team…" />
       )}
+
+      {selectedPlayerId && selected ? (
+        <PlayerModal
+          leagueId={selected.leagueId}
+          playerId={selectedPlayerId}
+          onClose={() => setSelectedPlayerId(null)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -171,10 +198,7 @@ function ScheduleRow({
             ) : (
               <div className="w-9 h-9 rounded-full bg-white/5" />
             )}
-            <div className="min-w-0">
-              <div className="font-semibold text-ink-100 truncate">{game.opponent.team_name}</div>
-              <div className="text-xs text-ink-500">{game.opponent.owner}</div>
-            </div>
+            <OpponentLink opponent={game.opponent} />
           </div>
           <div className="text-right shrink-0">
             {isPlayed ? (
@@ -215,5 +239,25 @@ function ScheduleRow({
         </div>
       ) : null}
     </details>
+  )
+}
+
+function OpponentLink({ opponent }: { opponent: TeamRef }) {
+  const navigate = useNavigate()
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        // Prevent the click from also toggling the parent <details> disclosure.
+        e.preventDefault()
+        e.stopPropagation()
+        navigate(`/teams/${opponent.league_id}/${opponent.team_id}`)
+      }}
+      className="min-w-0 text-left hover:text-brand-400"
+    >
+      <div className="font-semibold text-ink-100 truncate">{opponent.team_name}</div>
+      <div className="text-xs text-ink-500">{opponent.owner}</div>
+    </button>
   )
 }

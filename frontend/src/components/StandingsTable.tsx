@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import type { PlayoffStandingsRow, StandingsRow } from '../api/types'
 import { SeedBadge } from './ui/Badge'
 import { Card } from './ui/Section'
@@ -27,7 +29,9 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
                 <SeedBadge seed={row.rank} />
               </td>
               <td className="py-2.5 pr-2 font-medium text-ink-100">
-                {row.team.team_name}
+                <Link to={`/teams/${row.team.league_id}/${row.team.team_id}`} className="hover:text-brand-400">
+                  {row.team.team_name}
+                </Link>
                 {row.team.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({row.team.owner})</span> : null}
               </td>
               <td className="py-2.5 pr-2 text-ink-400 hidden sm:table-cell">{row.team.league_name}</td>
@@ -62,7 +66,9 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <tr key={row.team.team_name} className="border-b border-line/60 last:border-0 hover:bg-white/[0.02] transition-colors">
               <td className="py-2 pl-4 pr-2 text-ink-500 tabular-nums">{row.league_rank}</td>
               <td className="py-2 pr-2 font-medium text-ink-100">
-                {row.team.team_name}
+                <Link to={`/teams/${row.team.league_id}/${row.team.team_id}`} className="hover:text-brand-400">
+                  {row.team.team_name}
+                </Link>
                 {row.team.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({row.team.owner})</span> : null}
               </td>
               <td className="py-2 pr-2 text-ink-400 tabular-nums">
