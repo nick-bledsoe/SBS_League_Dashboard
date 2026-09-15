@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.schemas.common import TeamRef
+
 
 class PlayerNewsItem(BaseModel):
     id: int | None = None
@@ -34,6 +36,7 @@ class PlayerDetail(BaseModel):
     position: str
     nfl_team: str
     nfl_logo: str
+    owners: list[TeamRef]
     weekly_points: list[WeeklyPoints]
     news: list[PlayerNewsItem]
     stats: list[StatCategory]
@@ -45,6 +48,7 @@ class PlayerRanking(BaseModel):
     position: str
     nfl_team: str
     league_id: str
+    owners: list[TeamRef]
     total_points: float
     games_played: int
     avg_points: float

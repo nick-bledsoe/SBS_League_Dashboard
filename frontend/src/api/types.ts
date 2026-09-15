@@ -235,6 +235,7 @@ export interface PlayerDetail {
   position: string
   nfl_team: string
   nfl_logo: string
+  owners: TeamRef[]
   weekly_points: WeeklyPoints[]
   news: PlayerNewsItem[]
   stats: StatCategory[]
@@ -246,6 +247,7 @@ export interface PlayerRanking {
   position: string
   nfl_team: string
   league_id: string
+  owners: TeamRef[]
   total_points: number
   games_played: number
   avg_points: number

@@ -16,6 +16,21 @@ def team_ref(league_id: str, league_name: str, team_id: int, team_name: str) -> 
     }
 
 
+def get_player_owners(player_id: int) -> list[dict]:
+    """Every team, across all leagues, that currently rosters this player."""
+    owners = []
+    for league_name, league_id in LEAGUES.items():
+        league_data = fetch_league_data(league_id)
+        if not league_data:
+            continue
+        for team in league_data.get("teams", []):
+            entries = team.get("roster", {}).get("entries", [])
+            if any(e.get("playerPoolEntry", {}).get("player", {}).get("id") == player_id for e in entries):
+                owners.append(team_ref(league_id, league_name, team.get("id"), team.get("name", "Unknown")))
+                break
+    return owners
+
+
 def get_current_week() -> int:
     """Get current scoring period from any league."""
     for league_id in LEAGUES.values():

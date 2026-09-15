@@ -1,8 +1,9 @@
 import { BarChart3, Newspaper, TrendingUp, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { usePlayerDetail } from '../api/queries'
-import type { PlayerNewsItem, StatCategory } from '../api/types'
+import type { PlayerNewsItem, StatCategory, TeamRef } from '../api/types'
 import { formatNewsDate, formatNewsSource, headshotUrl } from '../lib/format'
 import { Card } from './ui/Section'
 import { Select } from './ui/Select'
@@ -77,6 +78,7 @@ export function PlayerModal({ leagueId, playerId, onClose }: PlayerModalProps) {
                     {player.nfl_logo ? <img src={player.nfl_logo} alt="" className="w-4 h-4" /> : null}
                     {player.nfl_team} · {player.position}
                   </div>
+                  <OwnedByLine owners={player.owners} />
                 </div>
               </div>
               <button onClick={onClose} className="text-ink-500 hover:text-ink-100 shrink-0">
@@ -150,6 +152,25 @@ export function PlayerModal({ leagueId, playerId, onClose }: PlayerModalProps) {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function OwnedByLine({ owners }: { owners: TeamRef[] }) {
+  if (owners.length === 0) return null
+
+  return (
+    <div className="text-xs text-ink-500 mt-0.5">
+      Owned by{' '}
+      {owners.map((o, i) => (
+        <span key={`${o.league_id}-${o.team_id}`}>
+          <Link to={`/teams/${o.league_id}/${o.team_id}`} className="text-brand-400 hover:text-brand-300">
+            {o.owner || o.team_name}
+          </Link>
+          <span className="text-ink-600"> ({o.league_name})</span>
+          {i < owners.length - 1 ? ', ' : ''}
+        </span>
+      ))}
     </div>
   )
 }

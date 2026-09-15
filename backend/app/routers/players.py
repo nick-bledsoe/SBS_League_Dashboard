@@ -6,6 +6,7 @@ from app.services.espn_client import get_player_bio
 from app.services.news_service import get_player_news
 from app.services.player_rankings_service import get_player_rankings
 from app.services.player_stats_service import get_player_stats
+from app.services.standings_service import get_player_owners
 
 router = APIRouter(tags=["players"])
 
@@ -26,4 +27,9 @@ def player_detail(player_id: int, league_id: str = Query(...)):
     if not bio:
         raise NotFoundError(f"Player {player_id} not found in league {league_id}")
 
-    return {**bio, "news": get_player_news(player_id), "stats": get_player_stats(player_id)}
+    return {
+        **bio,
+        "owners": get_player_owners(player_id),
+        "news": get_player_news(player_id),
+        "stats": get_player_stats(player_id),
+    }

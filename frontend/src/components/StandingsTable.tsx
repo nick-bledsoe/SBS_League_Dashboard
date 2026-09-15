@@ -13,9 +13,9 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
             <th className="py-3 pl-4 pr-2 font-semibold">Seed</th>
             <th className="py-3 pr-2 font-semibold">Team</th>
             <th className="py-3 pr-2 font-semibold hidden sm:table-cell">Division</th>
-            <th className="py-3 pr-2 font-semibold text-right">W</th>
-            <th className="py-3 pr-2 font-semibold text-right hidden sm:table-cell">GB</th>
-            <th className="py-3 pr-2 font-semibold text-right">PF</th>
+            <th className="py-3 pr-2 font-semibold">W</th>
+            <th className="py-3 pr-2 font-semibold hidden sm:table-cell">GB</th>
+            <th className="py-3 pr-2 font-semibold">PF</th>
             <th className="py-3 pr-4 font-semibold hidden md:table-cell">Streak</th>
           </tr>
         </thead>
@@ -35,9 +35,9 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
                 {row.team.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({row.team.owner})</span> : null}
               </td>
               <td className="py-2.5 pr-2 text-ink-400 hidden sm:table-cell">{row.team.league_name}</td>
-              <td className="py-2.5 pr-2 text-right tabular-nums">{row.wins.toFixed(1)}</td>
-              <td className="py-2.5 pr-2 text-right tabular-nums text-ink-400 hidden sm:table-cell">{row.gb.toFixed(1)}</td>
-              <td className="py-2.5 pr-2 text-right tabular-nums">{row.points_for.toFixed(1)}</td>
+              <td className="py-2.5 pr-2 tabular-nums">{row.wins.toFixed(1)}</td>
+              <td className="py-2.5 pr-2 tabular-nums text-ink-400 hidden sm:table-cell">{row.gb.toFixed(1)}</td>
+              <td className="py-2.5 pr-2 tabular-nums">{row.points_for.toFixed(1)}</td>
               <td className="py-2.5 pr-4 text-ink-400 hidden md:table-cell">{row.streak}</td>
             </tr>
           ))}
@@ -56,9 +56,9 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <th className="py-2.5 pl-4 pr-2 font-semibold">#</th>
             <th className="py-2.5 pr-2 font-semibold">Team</th>
             <th className="py-2.5 pr-2 font-semibold">Record</th>
-            <th className="py-2.5 pr-2 font-semibold text-right">PF</th>
-            <th className="py-2.5 pr-2 font-semibold text-right">PA</th>
-            <th className="py-2.5 pr-4 font-semibold text-right">Moves</th>
+            <th className="py-2.5 pr-2 font-semibold">PF</th>
+            <th className="py-2.5 pr-2 font-semibold">PA</th>
+            <th className="py-2.5 pr-4 font-semibold">Moves</th>
           </tr>
         </thead>
         <tbody>
@@ -74,9 +74,9 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
               <td className="py-2 pr-2 text-ink-400 tabular-nums">
                 {row.wins}-{row.losses}
               </td>
-              <td className="py-2 pr-2 text-right tabular-nums">{row.points_for.toFixed(1)}</td>
-              <td className="py-2 pr-2 text-right tabular-nums">{row.points_against.toFixed(1)}</td>
-              <td className="py-2 pr-4 text-right tabular-nums">{row.transactions}</td>
+              <td className="py-2 pr-2 tabular-nums">{row.points_for.toFixed(1)}</td>
+              <td className="py-2 pr-2 tabular-nums">{row.points_against.toFixed(1)}</td>
+              <td className="py-2 pr-4 tabular-nums">{row.transactions}</td>
             </tr>
           ))}
         </tbody>

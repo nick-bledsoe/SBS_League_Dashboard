@@ -1,7 +1,7 @@
 from app.cache import player_rankings_cache
 from app.core.constants import LEAGUES
 from app.services.espn_client import get_matchup_roster_details
-from app.services.standings_service import get_current_week
+from app.services.standings_service import get_current_week, team_ref
 
 
 def get_player_rankings() -> list[dict]:
@@ -37,15 +37,25 @@ def get_player_rankings() -> list[dict]:
                                 "nfl_team": player["nfl_team"],
                                 "league_id": league_id,
                                 "weeks": {},
+                                "rosters": {},
                             },
                         )
                         entry["weeks"][week] = player["points"]
+                        # Rosters change week to week (waivers/trades) — keep whichever
+                        # team most recently held the player in each league.
+                        team = matchup[side]
+                        entry["rosters"][league_id] = (league_name, team["id"], team["name"])
 
     rankings = []
     for entry in players.values():
         weeks = entry["weeks"]
         games_played = len(weeks)
         total_points = round(sum(weeks.values()), 1)
+        owners = [
+            team_ref(league_id, *entry["rosters"][league_id])
+            for league_id in LEAGUES.values()
+            if league_id in entry["rosters"]
+        ]
         rankings.append(
             {
                 "player_id": entry["player_id"],
@@ -53,6 +63,7 @@ def get_player_rankings() -> list[dict]:
                 "position": entry["position"],
                 "nfl_team": entry["nfl_team"],
                 "league_id": entry["league_id"],
+                "owners": owners,
                 "total_points": total_points,
                 "games_played": games_played,
                 "avg_points": round(total_points / games_played, 1) if games_played else 0.0,
