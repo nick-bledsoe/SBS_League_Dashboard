@@ -1,4 +1,4 @@
-import { LayoutDashboard, Shield, Star, Trophy, Users } from 'lucide-react'
+import { LayoutDashboard, Newspaper, Shield, Star, Trophy, Users } from 'lucide-react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 
 import { useCurrentWeek, useSeasons } from './api/queries'
@@ -15,6 +15,9 @@ const navItems = [
   { to: '/scoreboard', label: 'Scores', icon: Trophy, end: false },
   { to: '/players', label: 'Players', icon: Star, end: false },
   { to: '/teams', label: 'Teams', icon: Users, end: false },
+  // The weekly recap is a static page published into frontend/public/recap/ and served by
+  // a vercel.json route, not a React route, so its tab does a full page load.
+  { to: '/recap', label: 'Recap', icon: Newspaper, end: false, reloadDocument: true },
   { to: '/admin', label: 'Admin', icon: Shield, end: false },
 ]
 
@@ -41,11 +44,12 @@ export default function App() {
           <div className="h-6 w-px bg-line shrink-0 hidden sm:block" />
 
           <nav className="hidden sm:flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto">
-            {navItems.map(({ to, label, icon: Icon, end }) => (
+            {navItems.map(({ to, label, icon: Icon, end, reloadDocument }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
+                reloadDocument={reloadDocument}
                 className={({ isActive }) =>
                   `relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive ? 'text-brand-400' : 'text-ink-400 hover:text-ink-100'

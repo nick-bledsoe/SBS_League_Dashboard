@@ -6,6 +6,7 @@ interface NavItem {
   label: string
   icon: LucideIcon
   end: boolean
+  reloadDocument?: boolean
 }
 
 /** Fixed bottom tab bar shown only below the `sm` breakpoint — mobile's small width
@@ -22,11 +23,12 @@ export function BottomNav({ items }: { items: NavItem[] }) {
       {/* h-16 matches the header's height exactly, so the two bars read as matching
        * bookends instead of the bottom bar just being whatever its padding added up to. */}
       <div className="h-16 flex items-stretch justify-around">
-        {items.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, label, icon: Icon, end, reloadDocument }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
+            reloadDocument={reloadDocument}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
                 isActive ? 'text-brand-400' : 'text-ink-500'
